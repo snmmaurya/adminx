@@ -1,0 +1,16 @@
+{% extends "layout.tera" %}
+
+{% block title %}View {{ resource_name }}{% endblock title %}
+
+{% block content %}
+<h2>{{ resource_name | capitalize }} Details</h2>
+
+<ul>
+    {% for key, value in record %}
+        <li><strong>{{ key }}:</strong> {{ value }}</li>
+    {% endfor %}
+</ul>
+
+<a href="{{ base_path }}/{{ record["id"] }}/edit">Edit</a>
+<a href="{{ base_path }}">Back to List</a>
+{% endblock content %}

@@ -1,6 +1,6 @@
-pub mod dashboard;
+
+
 pub mod resource;
-pub mod handlers;
 pub mod filters;
 pub mod pagination;
 pub mod error;
@@ -12,6 +12,12 @@ pub mod middleware;
 pub mod nested;
 pub mod utils;
 pub mod actions;
+pub mod helpers;
+pub mod controllers;
+pub mod configs;
 
-pub use dashboard::AdmixDashboard;
+pub mod schemas;
+
+pub use schemas::adminx_schema::AdminxSchema;
 pub use resource::AdmixResource;
+pub use configs::initializer::adminx_initialize;

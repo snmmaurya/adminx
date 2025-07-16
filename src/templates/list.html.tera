@@ -1,0 +1,50 @@
+{% extends "layout.tera" %}
+
+{% block title %}List {{ resource_name }}{% endblock title %}
+
+{% block content %}
+<h2>{{ resource_name | capitalize }} List</h2>
+
+<a href="{{ base_path }}/create">Create New</a>
+<a href="{{ base_path }}?download=json">Download JSON</a>
+<a href="{{ base_path }}?download=csv">Download CSV</a>
+
+<table>
+    <thead>
+        <tr>
+            {% for header in headers %}
+                <th>{{ header }}</th>
+            {% endfor %}
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for row in rows %}
+        <tr>
+            {% for field in headers %}
+                <td>{{ row[field] }}</td>
+            {% endfor %}
+            <td>
+                <a href="{{ base_path }}/{{ row["id"] }}">View</a> |
+                <a href="{{ base_path }}/{{ row["id"] }}/edit">Edit</a> |
+                <form method="post" action="{{ base_path }}/{{ row["id"] }}/delete" style="display:inline;">
+                    <button type="submit">Delete</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<div class="pagination">
+    {% if pagination.prev %}
+        <a href="{{ base_path }}?page={{ pagination.prev }}">Previous</a>
+    {% endif %}
+
+    Page {{ pagination.current }} of {{ pagination.total }}
+
+    {% if pagination.next %}
+        <a href="{{ base_path }}?page={{ pagination.next }}">Next</a>
+    {% endif %}
+</div>
+{% endblock content %}

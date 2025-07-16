@@ -7,6 +7,8 @@ pub struct MenuItem {
     pub title: String,
     pub path: String,
     pub children: Option<Vec<MenuItem>>,
+    pub icon: Option<String>,
+    pub order: Option<usize>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

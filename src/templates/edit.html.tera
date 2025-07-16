@@ -1,0 +1,17 @@
+{% extends "layout.tera" %}
+
+{% block title %}Edit {{ resource_name }}{% endblock title %}
+
+{% block content %}
+<h2>Edit {{ resource_name }}</h2>
+
+<form method="post" action="{{ base_path }}/{{ id }}?_method=put">
+    {% for field in fields %}
+        <div>
+            <label>{{ field.label }}</label>
+            <input type="text" name="{{ field.name }}" value="{{ record[field.name] }}">
+        </div>
+    {% endfor %}
+    <button type="submit">Update</button>
+</form>
+{% endblock content %}

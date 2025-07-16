@@ -57,33 +57,64 @@ where
 
     fn call(&self, req: ServiceRequest) -> Self::Future {
         let svc = Rc::clone(&self.service);
-        let allowed = self.allowed_roles.clone();
+        let _allowed = self.allowed_roles.clone();
 
         Box::pin(async move {
-            // Extract token from `Authorization` header
-            if let Some(auth_header) = req.headers().get("Authorization") {
-                if let Ok(token_str) = auth_header.to_str() {
-                    let token = token_str.strip_prefix("Bearer ").unwrap_or(token_str);
+            // --- Skipped authorization check block ---
+            // if let Some(auth_header) = req.headers().get("Authorization") {
+            //     if let Ok(token_str) = auth_header.to_str() {
+            //         let token = token_str.strip_prefix("Bearer ").unwrap_or(token_str);
 
-                    // Decode JWT
-                    if let Ok(token_data) = decode::<Claims>(
-                        token,
-                        &DecodingKey::from_secret("secret".as_bytes()), // use env in prod
-                        &Validation::default(),
-                    ) {
-                        let user_roles: HashSet<String> = token_data.claims.roles.into_iter().collect();
+            //         if let Ok(token_data) = decode::<Claims>(
+            //             token,
+            //             &DecodingKey::from_secret("secret".as_bytes()), // TODO: Replace with env variable
+            //             &Validation::default(),
+            //         ) {
+            //             let user_roles: HashSet<String> = token_data.claims.roles.into_iter().collect();
 
-                        for role in allowed {
-                            if user_roles.contains(&role) {
-                                return svc.call(req).await;
-                            }
-                        }
-                    }
-                }
-            }
+            //             for role in _allowed {
+            //                 if user_roles.contains(&role) {
+            //                     return svc.call(req).await;
+            //                 }
+            //             }
+            //         }
+            //     }
+            // }
 
-            Err(actix_web::error::ErrorUnauthorized("Access denied"))
+            // --- Skip authorization: allow all requests ---
+            svc.call(req).await
         })
     }
+
+
+    // fn call(&self, req: ServiceRequest) -> Self::Future {
+    //     let svc = Rc::clone(&self.service);
+    //     let allowed = self.allowed_roles.clone();
+
+    //     Box::pin(async move {
+    //         // Extract token from `Authorization` header
+    //         if let Some(auth_header) = req.headers().get("Authorization") {
+    //             if let Ok(token_str) = auth_header.to_str() {
+    //                 let token = token_str.strip_prefix("Bearer ").unwrap_or(token_str);
+
+    //                 // Decode JWT
+    //                 if let Ok(token_data) = decode::<Claims>(
+    //                     token,
+    //                     &DecodingKey::from_secret("secret".as_bytes()), // use env in prod
+    //                     &Validation::default(),
+    //                 ) {
+    //                     let user_roles: HashSet<String> = token_data.claims.roles.into_iter().collect();
+
+    //                     for role in allowed {
+    //                         if user_roles.contains(&role) {
+    //                             return svc.call(req).await;
+    //                         }
+    //                     }
+    //                 }
+    //             }
+    //         }
+    //         Err(actix_web::error::ErrorUnauthorized("Access denied"))
+    //     })
+    // }
 }
 
