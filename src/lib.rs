@@ -15,8 +15,11 @@ pub mod actions;
 pub mod helpers;
 pub mod controllers;
 pub mod configs;
+pub mod models;
 
 pub mod schemas;
+pub mod errors;
+
 
 pub use schemas::adminx_schema::AdminxSchema;
 pub use resource::AdmixResource;

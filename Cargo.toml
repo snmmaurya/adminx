@@ -30,6 +30,7 @@ hex = "0.4"
 
 schemars = { version = "0.8", features = ["derive"] }
 convert_case = "0.4"
+bcrypt = "0.17.0"
 
 [lib]
 path = "src/lib.rs"

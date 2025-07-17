@@ -7,8 +7,6 @@ use tera::Context;
 use crate::AdmixResource;
 use crate::helpers::form_helper::extract_fields_for_form;
 use crate::helpers::template_helper::render_template;
-// use crate::helpers::permission_helper::{extract_roles_from_request, has_permission};
-// use crate::models::MenuAction;
 
 
 /// Register all UI + API routes for a resource
@@ -21,13 +19,8 @@ pub fn register_admix_resource_routes(resource: Box<dyn AdmixResource>) -> Scope
         "",
         web::get().to(move |req: HttpRequest, query: web::Query<String>| {
             let resource = list_resource.clone_box();
-            // let roles = extract_roles_from_request(&req);
             async move {
-                // if has_permission(resource.as_ref(), &roles, MenuAction::List) {
-                    resource.list(&req, query.into_inner()).await
-                // } else {
-                //     HttpResponse::Forbidden().body("Not allowed to list")
-                // }
+                resource.list(&req, query.into_inner()).await
             }
         }),
     );
@@ -37,13 +30,8 @@ pub fn register_admix_resource_routes(resource: Box<dyn AdmixResource>) -> Scope
         "",
         web::post().to(move |req: HttpRequest, body: web::Json<Value>| {
             let resource = create_resource.clone_box();
-            // let roles = extract_roles_from_request(&req);
             async move {
-                // if has_permission(resource.as_ref(), &roles, MenuAction::Create) {
-                    resource.create(&req, body.into_inner()).await
-                // } else {
-                //     HttpResponse::Forbidden().body("Not allowed to create")
-                // }
+                resource.create(&req, body.into_inner()).await
             }
         }),
     );
@@ -53,13 +41,8 @@ pub fn register_admix_resource_routes(resource: Box<dyn AdmixResource>) -> Scope
         "/{id}",
         web::get().to(move |req: HttpRequest, path: web::Path<String>| {
             let resource = get_resource.clone_box();
-            // let roles = extract_roles_from_request(&req);
             async move {
-                // if has_permission(resource.as_ref(), &roles, MenuAction::View) {
-                    resource.get(&req, path.into_inner()).await
-                // } else {
-                //     HttpResponse::Forbidden().body("Not allowed to view")
-                // }
+                resource.get(&req, path.into_inner()).await
             }
         }),
     );
@@ -69,13 +52,8 @@ pub fn register_admix_resource_routes(resource: Box<dyn AdmixResource>) -> Scope
         "/{id}",
         web::put().to(move |req: HttpRequest, path: web::Path<String>, body: web::Json<Value>| {
             let resource = update_resource.clone_box();
-            // let roles = extract_roles_from_request(&req);
             async move {
-                // if has_permission(resource.as_ref(), &roles, MenuAction::Edit) {
-                    resource.update(&req, path.into_inner(), body.into_inner()).await
-                // } else {
-                //     HttpResponse::Forbidden().body("Not allowed to update")
-                // }
+                resource.update(&req, path.into_inner(), body.into_inner()).await
             }
         }),
     );
@@ -85,13 +63,8 @@ pub fn register_admix_resource_routes(resource: Box<dyn AdmixResource>) -> Scope
         "/{id}",
         web::delete().to(move |req: HttpRequest, path: web::Path<String>| {
             let resource = delete_resource.clone_box();
-            // let roles = extract_roles_from_request(&req);
             async move {
-                // if has_permission(resource.as_ref(), &roles, MenuAction::Delete) {
-                    resource.delete(&req, path.into_inner()).await
-                // } else {
-                //     HttpResponse::Forbidden().body("Not allowed to delete")
-                // }
+                resource.delete(&req, path.into_inner()).await
             }
         }),
     );

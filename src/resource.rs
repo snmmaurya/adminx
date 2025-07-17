@@ -8,8 +8,10 @@ use crate::actions::CustomAction;
 use crate::nested::AdmixNestedResource;
 use crate::schemas::adminx_schema::AdminxSchema;
 
+
 #[async_trait]
 pub trait AdmixResource: Send + Sync {
+
     fn resource_name(&self) -> &'static str;
     fn allowed_roles(&self) -> Vec<String>;
 
