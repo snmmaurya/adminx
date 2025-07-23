@@ -8,6 +8,7 @@ use tera::{Context, Tera};
 const TEMPLATE_FILES: &[(&str, &str)] = &[
     ("layout.html.tera", include_str!("../templates/layout.html.tera")),
     ("new.html.tera", include_str!("../templates/new.html.tera")),
+    ("login.html.tera", include_str!("../templates/login.html.tera")),
 ];
 
 pub static ADMINX_TEMPLATES: Lazy<Arc<Tera>> = Lazy::new(|| {

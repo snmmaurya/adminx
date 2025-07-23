@@ -10,7 +10,7 @@ use crate::utils::{
 };
 
 pub async fn adminx_initialize(db: Database) -> Result<(), AnyhowError> {
-	let initiate_database(db);
+	let _ = initiate_database(db);
 	// let _ = ADMINX_TEMPLATES.len();
 	info!("AdminX initialized successfully");
 	Ok(())

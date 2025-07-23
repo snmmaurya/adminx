@@ -18,7 +18,7 @@ use crate::controllers::{
         register_admix_resource_routes
     }
 };
-use crate::controllers::auth_controller::{login_form, login_post};
+use crate::controllers::auth_controller::{login_form, login_action};
 
 
 fn extract_roles_from_request(req: &HttpRequest) -> Vec<String> {
@@ -31,15 +31,15 @@ fn extract_roles_from_request(req: &HttpRequest) -> Vec<String> {
 
 pub fn register_all_admix_routes() -> Scope {
     let mut scope = web::scope("/adminx")
-        .route("", web::get().to(adminx_home)); // handles /adminx
         .route("/login", web::get().to(login_form))
-        .route("/login", web::post().to(login_post));
+        .route("/login", web::post().to(login_action));
 
     for resource in all_resources() {
         let allowed_roles = resource.allowed_roles();
-        let service = register_admix_resource_routes(resource);
-        // Don't re-scope with base_path; it's already done inside `register_admix_resource_routes`
-        scope = scope.service(service.wrap(RoleGuard { allowed_roles }));
+        let resource_scope = register_admix_resource_routes(resource)
+            .wrap(RoleGuard { allowed_roles });
+
+        scope = scope.service(resource_scope);
     }
 
     scope

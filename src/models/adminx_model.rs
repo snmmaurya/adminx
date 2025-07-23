@@ -1,12 +1,12 @@
 // adminx/src/models/adminx_model.rs
 use serde::{Deserialize, Serialize};
-use mongodb::bson::{oid::ObjectId, DateTime as BsonDateTime};
+use mongodb::bson::{doc, oid::ObjectId, DateTime as BsonDateTime};
 use chrono::Utc;
 use bcrypt::verify;
 
 use crate::{
     utils::{
-        auth::{
+        database::{
             get_adminx_database
         },
         auth::{
@@ -38,7 +38,7 @@ impl AdminxUser {
 }
 
 
-pub async fn get_admin_by_email(email: &str) -> Option<AdminUser> {
+pub async fn get_admin_by_email(email: &str) -> Option<AdminxUser> {
     let db = get_adminx_database();
     let collection = db.collection::<AdminxUser>("adminxs");
     collection.find_one(doc! { "email": email }, None).await.ok().flatten()

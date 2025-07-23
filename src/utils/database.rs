@@ -1,4 +1,4 @@
-// crates/adminx/src/utils/db.rs
+// crates/adminx/src/utils/database.rs
 use mongodb::Database;
 use once_cell::sync::OnceCell;
 
@@ -9,5 +9,7 @@ pub fn initiate_database(db: Database) {
 }
 
 pub fn get_adminx_database() -> &'static Database {
-    ADMINX_DATABASE.get().expect("ADMINX_DATABASE has not been initialized. Call set_adminx_db(db) first.")
+    ADMINX_DATABASE
+        .get()
+        .expect("ADMINX_DATABASE has not been initialized. Call initiate_database(db) first.")
 }

@@ -1,19 +1,30 @@
 
 // adminx/src/middleware/role_guard.rs
 
-use actix_web::{dev::{ServiceRequest, ServiceResponse, Transform, forward_ready}, Error, HttpMessage};
-use futures_util::future::{LocalBoxFuture, ready};
-use std::rc::Rc;
-use std::task::{Context, Poll};
+// adminx/src/middleware/role_guard.rs
+
+use actix_web::{
+    dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform},
+    Error, HttpMessage,
+};
+use futures_util::future::{ready, LocalBoxFuture};
 use jsonwebtoken::{decode, DecodingKey, Validation};
 use serde::Deserialize;
-use std::collections::HashSet;
+use std::{
+    collections::HashSet,
+    env,
+    future::Ready,
+    rc::Rc,
+    task::{Context, Poll},
+};
 
 #[derive(Debug, Deserialize)]
 struct Claims {
     sub: String,
     exp: usize,
-    roles: Vec<String>, // roles from token
+    email: String,
+    role: String,
+    roles: Vec<String>,
 }
 
 pub struct RoleGuard {
@@ -22,7 +33,7 @@ pub struct RoleGuard {
 
 impl<S, B> Transform<S, ServiceRequest> for RoleGuard
 where
-    S: actix_service::Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error> + 'static,
+    S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error> + 'static,
     B: 'static,
 {
     type Response = ServiceResponse<B>;
@@ -47,9 +58,9 @@ pub struct RoleGuardMiddleware<S> {
     allowed_roles: Vec<String>,
 }
 
-impl<S, B> actix_service::Service<ServiceRequest> for RoleGuardMiddleware<S>
+impl<S, B> Service<ServiceRequest> for RoleGuardMiddleware<S>
 where
-    S: actix_service::Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error> + 'static,
+    S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error> + 'static,
     B: 'static,
 {
     type Response = ServiceResponse<B>;
@@ -58,28 +69,39 @@ where
 
     forward_ready!(service);
 
-    fn call(&self, req: ServiceRequest) -> Self::Future {
+    fn call(&self, mut req: ServiceRequest) -> Self::Future {
         let svc = Rc::clone(&self.service);
-        let allowed = self.allowed_roles.clone();
+        let allowed_roles = self.allowed_roles.clone();
+
+        println!("allowed_roles: {:?}", allowed_roles.clone());
+        println!("svc: {:?}", svc.clone());
 
         Box::pin(async move {
-            // Extract token from `Authorization` header
+            let jwt_secret = env::var("JWT_SECRET").map_err(|_| {
+                actix_web::error::ErrorInternalServerError("JWT_SECRET not set in env")
+            })?;
+
             if let Some(auth_header) = req.headers().get("Authorization") {
                 if let Ok(token_str) = auth_header.to_str() {
                     let token = token_str.strip_prefix("Bearer ").unwrap_or(token_str);
 
-                    // Decode JWT
                     if let Ok(token_data) = decode::<Claims>(
                         token,
-                        &DecodingKey::from_secret("secret".as_bytes()), // use env in prod
+                        &DecodingKey::from_secret(jwt_secret.as_bytes()),
                         &Validation::default(),
                     ) {
-                        let user_roles: HashSet<String> = token_data.claims.roles.into_iter().collect();
+                        let claims = token_data.claims;
 
-                        for role in allowed {
-                            if user_roles.contains(&role) {
-                                return svc.call(req).await;
-                            }
+                        let user_roles: HashSet<String> = {
+                            let mut roles = claims.roles.clone();
+                            roles.push(claims.role.clone()); // include `role` if separate
+                            roles.into_iter().collect()
+                        };
+
+                        if allowed_roles.iter().any(|role| user_roles.contains(role)) {
+                            // Optionally store claims in request extensions
+                            req.extensions_mut().insert(claims);
+                            return svc.call(req).await;
                         }
                     }
                 }
@@ -89,4 +111,3 @@ where
         })
     }
 }
-

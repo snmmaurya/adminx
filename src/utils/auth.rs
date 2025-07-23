@@ -28,7 +28,7 @@ pub enum AdminxStatus {
 }
 
 
-enum InitOutcome {
+pub enum InitOutcome {
     Created,
     Updated,
 }
