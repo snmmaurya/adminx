@@ -1,35 +1,25 @@
-
-// adminx/src/middleware/role_guard.rs
-
-// adminx/src/middleware/role_guard.rs
-
+// adminx/src/middleware/role_guard.rs - Fixed version
 use actix_web::{
     dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform},
-    Error, HttpMessage,
+    Error, HttpMessage, web,
 };
-use futures_util::future::{ready, LocalBoxFuture};
-use jsonwebtoken::{decode, DecodingKey, Validation};
-use serde::Deserialize;
+use futures_util::future::LocalBoxFuture;
 use std::{
     collections::HashSet,
-    env,
     future::Ready,
     rc::Rc,
-    task::{Context, Poll},
 };
-
-#[derive(Debug, Deserialize)]
-struct Claims {
-    sub: String,
-    exp: usize,
-    email: String,
-    role: String,
-    roles: Vec<String>,
-}
-
-pub struct RoleGuard {
-    pub allowed_roles: Vec<String>,
-}
+use actix_session::SessionExt;
+use crate::utils::{
+    auth::{
+        extract_claims_from_session
+    },
+    structs::{
+        RoleGuard, Claims // ✅ Import both RoleGuard and Claims
+    },
+};
+use crate::configs::initializer::AdminxConfig;
+use tracing::{info, warn};
 
 impl<S, B> Transform<S, ServiceRequest> for RoleGuard
 where
@@ -73,41 +63,80 @@ where
         let svc = Rc::clone(&self.service);
         let allowed_roles = self.allowed_roles.clone();
 
-        println!("allowed_roles: {:?}", allowed_roles.clone());
-        println!("svc: {:?}", svc.clone());
-
         Box::pin(async move {
-            let jwt_secret = env::var("JWT_SECRET").map_err(|_| {
-                actix_web::error::ErrorInternalServerError("JWT_SECRET not set in env")
-            })?;
+            let session = req.get_session();
+            let uri = req.uri().to_string();
 
-            if let Some(auth_header) = req.headers().get("Authorization") {
-                if let Ok(token_str) = auth_header.to_str() {
-                    let token = token_str.strip_prefix("Bearer ").unwrap_or(token_str);
+            // Get config from app data instead of environment variables
+            let config = req.app_data::<web::Data<AdminxConfig>>()
+                .ok_or_else(|| {
+                    warn!("⚠️  AdminX config not found in app data for request: {}", uri);
+                    actix_web::error::ErrorInternalServerError("AdminX config not found")
+                })?;
 
-                    if let Ok(token_data) = decode::<Claims>(
-                        token,
-                        &DecodingKey::from_secret(jwt_secret.as_bytes()),
-                        &Validation::default(),
-                    ) {
-                        let claims = token_data.claims;
+            match extract_claims_from_session(&session, config.as_ref()).await {
+                Ok(claims) => {
+                    let user_roles: HashSet<String> = {
+                        let mut roles = claims.roles.clone();
+                        roles.push(claims.role.clone());
+                        roles.into_iter().collect()
+                    };
 
-                        let user_roles: HashSet<String> = {
-                            let mut roles = claims.roles.clone();
-                            roles.push(claims.role.clone()); // include `role` if separate
-                            roles.into_iter().collect()
-                        };
+                    // Check if user has any of the allowed roles
+                    let has_permission = allowed_roles.iter().any(|role| user_roles.contains(role));
 
-                        if allowed_roles.iter().any(|role| user_roles.contains(role)) {
-                            // Optionally store claims in request extensions
-                            req.extensions_mut().insert(claims);
-                            return svc.call(req).await;
-                        }
+                    if has_permission {
+                        info!("✅ Access granted to {} for {} (roles: {:?})", 
+                              claims.email, uri, user_roles);
+                        
+                        // Insert claims into request extensions for use by handlers
+                        req.extensions_mut().insert(claims);
+                        return svc.call(req).await;
+                    } else {
+                        warn!("🚫 Access denied to {} for {} - insufficient roles (user: {:?}, required: {:?})", 
+                              claims.email, uri, user_roles, allowed_roles);
+                        return Err(actix_web::error::ErrorForbidden(format!(
+                            "Access denied. Required roles: {:?}, User roles: {:?}", 
+                            allowed_roles, user_roles
+                        )));
                     }
                 }
+                Err(auth_error) => {
+                    warn!("🔐 Authentication failed for request: {} - {:?}", uri, auth_error);
+                    return Err(actix_web::error::ErrorUnauthorized("Authentication required"));
+                }
             }
-
-            Err(actix_web::error::ErrorUnauthorized("Access denied"))
         })
+    }
+}
+
+// Helper functions for common role checks
+impl RoleGuard {
+    /// Create a role guard that allows only admins
+    pub fn admin_only() -> Self {
+        Self {
+            allowed_roles: vec!["admin".to_string(), "superadmin".to_string()],
+        }
+    }
+
+    /// Create a role guard for moderators and above
+    pub fn moderator_and_above() -> Self {
+        Self {
+            allowed_roles: vec!["admin".to_string(), "superadmin".to_string(), "moderator".to_string()],
+        }
+    }
+
+    /// Create a role guard that allows all authenticated users
+    pub fn authenticated_users() -> Self {
+        Self {
+            allowed_roles: vec!["admin".to_string(), "moderator".to_string(), "user".to_string()],
+        }
+    }
+
+    /// Create a custom role guard with specific roles
+    pub fn custom_roles(roles: Vec<&str>) -> Self {
+        Self {
+            allowed_roles: roles.iter().map(|&s| s.to_string()).collect(),
+        }
     }
 }

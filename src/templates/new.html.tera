@@ -5,7 +5,8 @@
 {% block content %}
 <h2 class="text-xl font-bold mb-4">Create {{ resource_name }}</h2>
 
-<form method="post" action="{{ base_path }}" class="space-y-4">
+<!-- ✅ FIXED: Form action points to /create endpoint, not base_path -->
+<form method="post" action="{{ base_path }}/create" class="space-y-4">
   {% for group in form.groups %}
     <div class="mb-6">
       <h3 class="text-lg font-semibold mb-2">{{ group.title }}</h3>
@@ -39,6 +40,11 @@
     </div>
   {% endfor %}
 
-  <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Create</button>
+  <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+    Create {{ resource_name }}
+  </button>
+  <a href="{{ base_path }}/list" class="ml-4 bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
+    Cancel
+  </a>
 </form>
 {% endblock content %}

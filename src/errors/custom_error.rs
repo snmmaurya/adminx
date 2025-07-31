@@ -1,3 +1,5 @@
+// crates/adminx/src/errors/custom_error.rs
+
 use actix_web::{HttpResponse, ResponseError, http::StatusCode};
 use serde::Serialize;
 use std::{fmt, error::Error};

@@ -1,3 +1,5 @@
+// crates/adminx/src/error.rs
+
 use actix_web::{HttpResponse, ResponseError};
 use derive_more::Display;
 use serde::Serialize;
