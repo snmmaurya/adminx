@@ -53,72 +53,136 @@
 
   <!-- Form -->
   <form method="post" action="{{ base_path }}/update/{{ item_id }}" class="px-6 py-4">
-    <div class="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-2">
+    <!-- Single column layout with proper spacing -->
+    <div class="space-y-6">
       
       <!-- Name Field -->
       {% if record.name is defined %}
-      <div class="sm:col-span-1">
-        <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+      <div>
+        <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
           Name
         </label>
-        <div class="mt-1">
-          <input type="text" 
-                 name="name" 
-                 id="name"
-                 value="{{ record.name | default(value="") }}"
-                 class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                 required>
-        </div>
+        <input type="text" 
+               name="name" 
+               id="name"
+               value="{{ record.name | default(value="") }}"
+               class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full max-w-md px-3 py-3 text-base border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+               required>
       </div>
       {% endif %}
 
       <!-- Email Field -->
       {% if record.email is defined %}
-      <div class="sm:col-span-1">
-        <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+      <div>
+        <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
           Email
         </label>
-        <div class="mt-1">
-          <input type="email" 
-                 name="email" 
-                 id="email"
-                 value="{{ record.email | default(value="") }}"
-                 class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                 required>
-        </div>
+        <input type="email" 
+               name="email" 
+               id="email"
+               value="{{ record.email | default(value="") }}"
+               class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full max-w-md px-3 py-3 text-base border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+               required>
       </div>
       {% endif %}
 
       <!-- Dynamic fields based on form structure -->
       {% for field in fields %}
         {% if field.name != "name" and field.name != "email" %}
-        <div class="sm:col-span-1">
-          <label for="{{ field.name }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+        <div>
+          <label for="{{ field.name }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             {{ field.label | default(value=field.name | title) }}
           </label>
-          <div class="mt-1">
-            {% if field.type == "textarea" %}
-              <textarea name="{{ field.name }}" id="{{ field.name }}"
-                        class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                        rows="3">{{ record[field.name] | default(value="") }}</textarea>
-            {% elif field.type == "select" %}
-              <select name="{{ field.name }}" id="{{ field.name }}"
-                      class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                {% for option in field.options %}
-                  <option value="{{ option.value }}" {% if record[field.name] == option.value %}selected{% endif %}>
-                    {{ option.label }}
-                  </option>
-                {% endfor %}
-              </select>
-            {% else %}
-              <input type="{{ field.type | default(value="text") }}" 
+          
+          {% if field.type == "textarea" %}
+            <textarea name="{{ field.name }}" id="{{ field.name }}"
+                      class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full max-w-md px-3 py-3 text-base border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                      rows="4"
+                      {% if field.required %}required{% endif %}>{{ record[field.name] | default(value="") }}</textarea>
+          {% elif field.type == "select" %}
+            <select name="{{ field.name }}" id="{{ field.name }}"
+                    class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full max-w-md px-3 py-3 text-base border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    {% if field.required %}required{% endif %}>
+              {% for option in field.options %}
+                <option value="{{ option.value }}" {% if record[field.name] == option.value %}selected{% endif %}>
+                  {{ option.label }}
+                </option>
+              {% endfor %}
+            </select>
+          {% elif field.type == "checkbox" %}
+            <div class="flex items-center">
+              <input type="checkbox" 
                      name="{{ field.name }}" 
                      id="{{ field.name }}"
-                     value="{{ record[field.name] | default(value="") }}"
-                     class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                     {% if field.required %}required{% endif %}>
-            {% endif %}
-          </div>
+                     value="1"
+                     {% if record[field.name] %}checked{% endif %}
+                     class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600">
+              <label for="{{ field.name }}" class="ml-2 block text-sm text-gray-700 dark:text-gray-300">
+                {{ field.label | default(value=field.name | title) }}
+              </label>
+            </div>
+          {% elif field.type == "number" %}
+            <input type="number" 
+                   name="{{ field.name }}" 
+                   id="{{ field.name }}"
+                   value="{{ record[field.name] | default(value="") }}"
+                   class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full max-w-md px-3 py-3 text-base border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                   {% if field.min %}min="{{ field.min }}"{% endif %}
+                   {% if field.max %}max="{{ field.max }}"{% endif %}
+                   {% if field.step %}step="{{ field.step }}"{% endif %}
+                   {% if field.required %}required{% endif %}>
+          {% elif field.type == "date" %}
+            <input type="date" 
+                   name="{{ field.name }}" 
+                   id="{{ field.name }}"
+                   value="{{ record[field.name] | default(value="") }}"
+                   class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full max-w-md px-3 py-3 text-base border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                   {% if field.required %}required{% endif %}>
+          {% elif field.type == "datetime-local" %}
+            <input type="datetime-local" 
+                   name="{{ field.name }}" 
+                   id="{{ field.name }}"
+                   value="{{ record[field.name] | default(value="") }}"
+                   class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full max-w-md px-3 py-3 text-base border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                   {% if field.required %}required{% endif %}>
+          {% elif field.type == "time" %}
+            <input type="time" 
+                   name="{{ field.name }}" 
+                   id="{{ field.name }}"
+                   value="{{ record[field.name] | default(value="") }}"
+                   class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full max-w-md px-3 py-3 text-base border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                   {% if field.required %}required{% endif %}>
+          {% elif field.type == "url" %}
+            <input type="url" 
+                   name="{{ field.name }}" 
+                   id="{{ field.name }}"
+                   value="{{ record[field.name] | default(value="") }}"
+                   class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full max-w-md px-3 py-3 text-base border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                   placeholder="https://example.com"
+                   {% if field.required %}required{% endif %}>
+          {% elif field.type == "tel" %}
+            <input type="tel" 
+                   name="{{ field.name }}" 
+                   id="{{ field.name }}"
+                   value="{{ record[field.name] | default(value="") }}"
+                   class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full max-w-md px-3 py-3 text-base border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                   {% if field.required %}required{% endif %}>
+          {% elif field.type == "password" %}
+            <input type="password" 
+                   name="{{ field.name }}" 
+                   id="{{ field.name }}"
+                   class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full max-w-md px-3 py-3 text-base border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                   placeholder="Leave blank to keep current password"
+                   {% if field.required %}required{% endif %}>
+          {% else %}
+            <input type="{{ field.type | default(value="text") }}" 
+                   name="{{ field.name }}" 
+                   id="{{ field.name }}"
+                   value="{{ record[field.name] | default(value="") }}"
+                   class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full max-w-md px-3 py-3 text-base border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                   {% if field.required %}required{% endif %}>
+          {% endif %}
+          
           {% if field.help_text %}
           <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">{{ field.help_text }}</p>
           {% endif %}
@@ -129,23 +193,23 @@
     </div>
 
     <!-- Form Actions -->
-    <div class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-      <div class="flex justify-between">
-        <div class="flex gap-2">
+    <div class="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+      <div class="flex flex-col sm:flex-row sm:justify-between gap-4">
+        <div class="flex flex-col sm:flex-row gap-3">
           <button type="submit" 
-                  class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                  class="inline-flex items-center justify-center px-6 py-3 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200">
             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
             </svg>
             Update {{ resource_name }}
           </button>
           <a href="{{ base_path }}/view/{{ item_id }}" 
-             class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:bg-gray-600 dark:text-gray-200 dark:border-gray-500 dark:hover:bg-gray-700">
+             class="inline-flex items-center justify-center px-6 py-3 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:bg-gray-600 dark:text-gray-200 dark:border-gray-500 dark:hover:bg-gray-700 transition-colors duration-200">
             Cancel
           </a>
         </div>
         <a href="{{ base_path }}/list" 
-           class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:bg-gray-600 dark:text-gray-200 dark:border-gray-500 dark:hover:bg-gray-700">
+           class="inline-flex items-center justify-center px-6 py-3 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:bg-gray-600 dark:text-gray-200 dark:border-gray-500 dark:hover:bg-gray-700 transition-colors duration-200">
           <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
           </svg>
@@ -158,19 +222,19 @@
 
 <!-- Read-only Information -->
 {% if record.created_at or record.updated_at %}
-<div class="mt-6 bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-  <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">System Information</h3>
-  <div class="grid grid-cols-2 gap-4 text-sm">
+<div class="mt-6 bg-gray-50 dark:bg-gray-700 rounded-lg p-6">
+  <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-4">System Information</h3>
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
     {% if record.created_at %}
     <div>
       <span class="font-medium text-gray-700 dark:text-gray-300">Created:</span>
-      <span class="text-gray-600 dark:text-gray-400">{{ record.created_at }}</span>
+      <span class="text-gray-600 dark:text-gray-400 ml-2">{{ record.created_at }}</span>
     </div>
     {% endif %}
     {% if record.updated_at %}
     <div>
       <span class="font-medium text-gray-700 dark:text-gray-300">Last Updated:</span>
-      <span class="text-gray-600 dark:text-gray-400">{{ record.updated_at }}</span>
+      <span class="text-gray-600 dark:text-gray-400 ml-2">{{ record.updated_at }}</span>
     </div>
     {% endif %}
   </div>

@@ -13,6 +13,8 @@ use chrono::Datelike;
 // Centralized template list to keep code clean and DRY
 const TEMPLATE_FILES: &[(&str, &str)] = &[
     ("layout.html.tera", include_str!("../templates/layout.html.tera")),
+    ("header.html.tera", include_str!("../templates/header.html.tera")),
+    ("footer.html.tera", include_str!("../templates/footer.html.tera")),
     ("list.html.tera", include_str!("../templates/list.html.tera")),
     ("new.html.tera", include_str!("../templates/new.html.tera")),
     ("edit.html.tera", include_str!("../templates/edit.html.tera")),

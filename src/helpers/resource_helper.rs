@@ -160,6 +160,100 @@ pub fn get_default_list_structure() -> Value {
 }
 
 /// Fetch and prepare list data directly from database
+// pub async fn fetch_list_data(
+//     resource: &Arc<Box<dyn AdmixResource>>,
+//     req: &HttpRequest,
+//     _query_string: String,
+// ) -> Result<(Vec<String>, Vec<serde_json::Map<String, Value>>, Value), Box<dyn std::error::Error + Send + Sync>> {
+//     let collection = resource.get_collection();
+    
+//     // Parse query parameters for pagination
+//     let query_params: std::collections::HashMap<String, String> = 
+//         serde_urlencoded::from_str(req.query_string()).unwrap_or_default();
+    
+//     let page: u64 = query_params.get("page")
+//         .and_then(|p| p.parse().ok())
+//         .unwrap_or(1);
+//     let per_page: u64 = query_params.get("per_page")
+//         .and_then(|p| p.parse().ok())
+//         .unwrap_or(10);
+    
+//     let skip = (page - 1) * per_page;
+    
+//     // Get total count
+//     let total = collection.count_documents(mongodb::bson::doc! {}, None).await
+//         .unwrap_or(0);
+    
+//     // Fetch documents with pagination
+//     let mut find_options = mongodb::options::FindOptions::default();
+//     find_options.skip = Some(skip);
+//     find_options.limit = Some(per_page as i64);
+//     find_options.sort = Some(mongodb::bson::doc! { "created_at": -1 });
+    
+//     let mut cursor = collection.find(mongodb::bson::doc! {}, find_options).await
+//         .map_err(|e| format!("Database query failed: {}", e))?;
+    
+//     let mut documents = Vec::new();
+//     while let Some(doc) = cursor.try_next().await.unwrap_or(None) {
+//         documents.push(doc);
+//     }
+    
+//     // Convert MongoDB documents to the format expected by the template
+//     let headers = vec![
+//         "id".to_string(),
+//         "name".to_string(), 
+//         "email".to_string(),
+//         "created_at".to_string()
+//     ];
+    
+//     let rows: Vec<serde_json::Map<String, Value>> = documents
+//         .into_iter()
+//         .map(|doc| {
+//             let mut row = serde_json::Map::new();
+            
+//             // Handle MongoDB ObjectId
+//             if let Ok(oid) = doc.get_object_id("_id") {
+//                 row.insert("id".to_string(), Value::String(oid.to_hex()));
+//             }
+            
+//             // Extract other fields
+//             if let Ok(name) = doc.get_str("name") {
+//                 row.insert("name".to_string(), Value::String(name.to_string()));
+//             }
+            
+//             if let Ok(email) = doc.get_str("email") {
+//                 row.insert("email".to_string(), Value::String(email.to_string()));
+//             }
+            
+//             // Handle created_at timestamp
+//             if let Ok(created_at) = doc.get_datetime("created_at") {
+//                 let timestamp_ms = created_at.timestamp_millis();
+//                 if let Some(datetime) = chrono::DateTime::from_timestamp_millis(timestamp_ms) {
+//                     row.insert("created_at".to_string(), 
+//                              Value::String(datetime.format("%Y-%m-%d %H:%M:%S").to_string()));
+//                 } else {
+//                     row.insert("created_at".to_string(), Value::String("N/A".to_string()));
+//                 }
+//             } else {
+//                 row.insert("created_at".to_string(), Value::String("N/A".to_string()));
+//             }
+            
+//             row
+//         })
+//         .collect();
+    
+//     let total_pages = if per_page > 0 { (total + per_page - 1) / per_page } else { 1 }; // Ceiling division
+//     let pagination = serde_json::json!({
+//         "current": page,
+//         "total": total_pages,
+//         "prev": if page > 1 { Some(page - 1) } else { None },
+//         "next": if page < total_pages { Some(page + 1) } else { None }
+//     });
+    
+//     info!("Fetched {} items for list view (page {} of {})", rows.len(), page, total_pages);
+//     Ok((headers, rows, pagination))
+// }
+
 pub async fn fetch_list_data(
     resource: &Arc<Box<dyn AdmixResource>>,
     req: &HttpRequest,
@@ -167,7 +261,7 @@ pub async fn fetch_list_data(
 ) -> Result<(Vec<String>, Vec<serde_json::Map<String, Value>>, Value), Box<dyn std::error::Error + Send + Sync>> {
     let collection = resource.get_collection();
     
-    // Parse query parameters for pagination
+    // Parse query parameters for pagination and filters
     let query_params: std::collections::HashMap<String, String> = 
         serde_urlencoded::from_str(req.query_string()).unwrap_or_default();
     
@@ -180,17 +274,48 @@ pub async fn fetch_list_data(
     
     let skip = (page - 1) * per_page;
     
-    // Get total count
-    let total = collection.count_documents(mongodb::bson::doc! {}, None).await
+    // Build filter document from query parameters
+    let mut filter_doc = mongodb::bson::doc! {};
+    
+    // Get permitted query fields for security
+    let permitted_fields: HashSet<&str> = resource.permit_keys().into_iter().collect();
+    
+    // Build filters based on query parameters
+    for (key, value) in &query_params {
+        if !value.is_empty() && permitted_fields.contains(key.as_str()) {
+            match key.as_str() {
+                "name" | "email" | "username" => {
+                    // Text search with regex (case-insensitive)
+                    filter_doc.insert(key, mongodb::bson::doc! {
+                        "$regex": value,
+                        "$options": "i"
+                    });
+                }
+                "status" => {
+                    // Exact match for status
+                    filter_doc.insert(key, value);
+                }
+                _ => {
+                    // Default: exact match for other fields
+                    filter_doc.insert(key, value);
+                }
+            }
+        }
+    }
+    
+    info!("Applied filters: {:?}", filter_doc);
+    
+    // Get total count with filters
+    let total = collection.count_documents(filter_doc.clone(), None).await
         .unwrap_or(0);
     
-    // Fetch documents with pagination
+    // Fetch documents with pagination and filters
     let mut find_options = mongodb::options::FindOptions::default();
     find_options.skip = Some(skip);
     find_options.limit = Some(per_page as i64);
     find_options.sort = Some(mongodb::bson::doc! { "created_at": -1 });
     
-    let mut cursor = collection.find(mongodb::bson::doc! {}, find_options).await
+    let mut cursor = collection.find(filter_doc, find_options).await
         .map_err(|e| format!("Database query failed: {}", e))?;
     
     let mut documents = Vec::new();
@@ -225,6 +350,11 @@ pub async fn fetch_list_data(
                 row.insert("email".to_string(), Value::String(email.to_string()));
             }
             
+            // Handle status if it exists
+            if let Ok(status) = doc.get_str("status") {
+                row.insert("status".to_string(), Value::String(status.to_string()));
+            }
+            
             // Handle created_at timestamp
             if let Ok(created_at) = doc.get_datetime("created_at") {
                 let timestamp_ms = created_at.timestamp_millis();
@@ -242,17 +372,91 @@ pub async fn fetch_list_data(
         })
         .collect();
     
-    let total_pages = if per_page > 0 { (total + per_page - 1) / per_page } else { 1 }; // Ceiling division
+    let total_pages = if per_page > 0 { (total + per_page - 1) / per_page } else { 1 };
+    
+    // Build pagination with current filters
+    let mut base_url = req.path().to_string();
+    let mut filter_params = Vec::new();
+    for (key, value) in &query_params {
+        if key != "page" && !value.is_empty() {
+            filter_params.push(format!("{}={}", key, urlencoding::encode(value)));
+        }
+    }
+    let filter_string = if filter_params.is_empty() {
+        String::new()
+    } else {
+        format!("&{}", filter_params.join("&"))
+    };
+    
     let pagination = serde_json::json!({
         "current": page,
         "total": total_pages,
         "prev": if page > 1 { Some(page - 1) } else { None },
-        "next": if page < total_pages { Some(page + 1) } else { None }
+        "next": if page < total_pages { Some(page + 1) } else { None },
+        "filter_params": filter_string
     });
     
-    info!("Fetched {} items for list view (page {} of {})", rows.len(), page, total_pages);
+    info!("Fetched {} items for list view (page {} of {}) with filters", rows.len(), page, total_pages);
     Ok((headers, rows, pagination))
 }
+
+/// Get filters data and current filter values for the template
+pub fn get_filters_data(
+    resource: &Arc<Box<dyn AdmixResource>>,
+    query_params: &std::collections::HashMap<String, String>
+) -> (Option<Value>, serde_json::Map<String, Value>) {
+    let filters = resource.filters();
+    let mut current_filters = serde_json::Map::new();
+    
+    // Extract current filter values from query parameters
+    if let Some(filter_config) = &filters {
+        if let Some(filter_array) = filter_config.get("filters").and_then(|f| f.as_array()) {
+            for filter in filter_array {
+                if let Some(field) = filter.get("field").and_then(|f| f.as_str()) {
+                    if let Some(value) = query_params.get(field) {
+                        if !value.is_empty() {
+                            current_filters.insert(field.to_string(), Value::String(value.clone()));
+                        }
+                    }
+                    
+                    // Handle range filters (date_range, number_range)
+                    let from_key = format!("{}_from", field);
+                    let to_key = format!("{}_to", field);
+                    let min_key = format!("{}_min", field);
+                    let max_key = format!("{}_max", field);
+                    
+                    if let Some(from_value) = query_params.get(&from_key) {
+                        if !from_value.is_empty() {
+                            current_filters.insert(from_key, Value::String(from_value.clone()));
+                        }
+                    }
+                    
+                    if let Some(to_value) = query_params.get(&to_key) {
+                        if !to_value.is_empty() {
+                            current_filters.insert(to_key, Value::String(to_value.clone()));
+                        }
+                    }
+                    
+                    if let Some(min_value) = query_params.get(&min_key) {
+                        if !min_value.is_empty() {
+                            current_filters.insert(min_key, Value::String(min_value.clone()));
+                        }
+                    }
+                    
+                    if let Some(max_value) = query_params.get(&max_key) {
+                        if !max_value.is_empty() {
+                            current_filters.insert(max_key, Value::String(max_value.clone()));
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    (filters, current_filters)
+}
+
+
 
 /// Fetch single item data for view/edit pages
 pub async fn fetch_single_item_data(

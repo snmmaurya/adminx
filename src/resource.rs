@@ -27,6 +27,17 @@ pub trait AdmixResource: Send + Sync {
     // ===========================
     // CONFIGURATION (Optional - with defaults)
     // ===========================
+
+    /// Optional parent/super menu name to group this resource under.
+    fn menu_group(&self) -> Option<&'static str> {
+        None
+    }
+
+    /// Menu label for this resource (default: same as resource_name)
+    fn menu(&self) -> &'static str {
+        self.resource_name()
+    }
+
     fn allowed_roles(&self) -> Vec<String> {
         vec!["admin".to_string()]
     }
@@ -51,15 +62,15 @@ pub trait AdmixResource: Send + Sync {
         None // None means all actions are allowed
     }
 
-    fn permit_params(&self) -> Vec<&'static str> {
+    fn permit_keys(&self) -> Vec<&'static str> {
         vec![] // Override this to specify which fields can be created/updated
     }
 
-    fn readonly_fields(&self) -> Vec<&'static str> {
+    fn readonly_keys(&self) -> Vec<&'static str> {
         vec!["_id", "created_at", "updated_at"]
     }
 
-    fn permit_query_fields(&self) -> Vec<&'static str> {
+    fn permit_filter_keys(&self) -> Vec<&'static str> {
         vec![] // Override this to specify which fields can be searched
     }
 
@@ -78,7 +89,7 @@ pub trait AdmixResource: Send + Sync {
         None // Override to customize detail view
     }
 
-    fn list_filters(&self) -> Option<Value> {
+    fn filters(&self) -> Option<Value> {
         None // Override to add search/filter functionality
     }
 
@@ -174,7 +185,7 @@ pub trait AdmixResource: Send + Sync {
     /// Default CREATE implementation - override if you need custom logic
     fn create(&self, _req: &HttpRequest, payload: Value) -> BoxFuture<'static, HttpResponse> {
         let collection = self.get_collection();
-        let permitted = self.permit_params().into_iter().collect::<std::collections::HashSet<_>>();
+        let permitted = self.permit_keys().into_iter().collect::<std::collections::HashSet<_>>();
         let resource_name = self.resource_name().to_string();
         
         Box::pin(async move {
@@ -226,7 +237,7 @@ pub trait AdmixResource: Send + Sync {
     /// Default UPDATE implementation - override if you need custom logic
     fn update(&self, _req: &HttpRequest, id: String, payload: Value) -> BoxFuture<'static, HttpResponse> {
         let collection = self.get_collection();
-        let permitted = self.permit_params().into_iter().collect::<std::collections::HashSet<_>>();
+        let permitted = self.permit_keys().into_iter().collect::<std::collections::HashSet<_>>();
         let resource_name = self.resource_name().to_string();
         
         Box::pin(async move {
@@ -328,32 +339,30 @@ pub trait AdmixResource: Send + Sync {
     // MENU GENERATION (Optional Override)
     // ===========================
     fn generate_menu(&self) -> Option<MenuItem> {
-        let actions = self.allowed_actions().unwrap_or_else(|| {
-            vec![
-                MenuAction::List,
-                MenuAction::Create,
-                MenuAction::View,
-                MenuAction::Edit,
-                MenuAction::Delete,
-            ]
-        });
-
-        Some(MenuItem {
-            title: self.resource_name().to_string(),
+        // Build a resource node with NO action children.
+        let resource_node = MenuItem {
+            title: self.menu().to_string(),
             path: self.base_path().to_string(),
             icon: Some("users".to_string()),
             order: Some(10),
-            children: Some(
-                actions.into_iter().map(|action| MenuItem {
-                    title: format!("{} {}", action.as_str().to_uppercase(), self.resource_name()),
-                    path: action.to_path(self.base_path()),
-                    children: None,
-                    icon: None,
-                    order: None,
-                }).collect()
-            ),
-        })
+            children: None, // <-- no List/Create/View/Edit/Delete
+        };
+
+        // If a parent menu is set, wrap the resource under it.
+        if let Some(group_title) = self.menu_group() {
+            return Some(MenuItem {
+                title: group_title.to_string(),
+                path: String::new(),            // non-clickable parent
+                icon: None,
+                order: Some(10),
+                children: Some(vec![resource_node]),
+            });
+        }
+
+        // Otherwise, just the resource node at top level.
+        Some(resource_node)
     }
+
 
     fn build_adminx_menus(&self) -> Option<MenuItem> {
         self.generate_menu()

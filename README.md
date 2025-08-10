@@ -94,7 +94,7 @@ impl AdmixResource for UserResource {
     }
     
     // Specify which fields can be created/updated
-    fn permit_params(&self) -> Vec<&'static str> {
+    fn permit_keys(&self) -> Vec<&'static str> {
         vec!["email", "name", "age"]
     }
     
@@ -222,7 +222,7 @@ impl AdmixResource for UserResource {
     }
     
     // Custom search filters
-    fn list_filters(&self) -> Option<Value> {
+    fn filters(&self) -> Option<Value> {
         Some(json!({
             "filters": [
                 {"field": "name", "label": "Name", "type": "text"},

@@ -41,6 +41,80 @@ pub fn register_admix_resource_routes(resource: Box<dyn AdmixResource>) -> Scope
     let ui_base_path = resource_arc.base_path().to_string();
 
     // GET /list - List view page
+    // scope = scope.route("/list", web::get().to({
+    //     let resource = Arc::clone(&resource_arc);
+    //     let resource_name = ui_resource_name.clone();
+    //     move |req: HttpRequest, session: Session, config: web::Data<AdminxConfig>| {
+    //         let query_string = req.query_string().to_string();
+    //         let resource = Arc::clone(&resource);
+    //         let resource_name = resource_name.clone();
+    //         async move {
+    //             match check_authentication(&session, &config, &resource_name, "list").await {
+    //                 Ok(claims) => {
+    //                     info!("✅ List UI accessed by: {} for resource: {}", claims.email, resource_name);
+                        
+    //                     let mut ctx = create_base_template_context(&resource_name, &resource.base_path(), &claims);
+                        
+    //                     // Check for success/error messages from query parameters
+    //                     let query_params: std::collections::HashMap<String, String> = 
+    //                         serde_urlencoded::from_str(&query_string).unwrap_or_default();
+                        
+    //                     if query_params.contains_key("success") {
+    //                         match query_params.get("success").unwrap().as_str() {
+    //                             "created" => ctx.insert("toast_message", &"Successfully created new item!"),
+    //                             "updated" => ctx.insert("toast_message", &"Successfully updated item!"),
+    //                             "deleted" => ctx.insert("toast_message", &"Successfully deleted item!"),
+    //                             _ => {}
+    //                         }
+    //                         ctx.insert("toast_type", &"success");
+    //                     }
+                        
+    //                     if query_params.contains_key("error") {
+    //                         match query_params.get("error").unwrap().as_str() {
+    //                             "create_failed" => ctx.insert("toast_message", &"Failed to create item. Please try again."),
+    //                             "update_failed" => ctx.insert("toast_message", &"Failed to update item. Please try again."),
+    //                             "delete_failed" => ctx.insert("toast_message", &"Failed to delete item. Please try again."),
+    //                             _ => {}
+    //                         }
+    //                         ctx.insert("toast_type", &"error");
+    //                     }
+                        
+    //                     // Fetch actual data from the resource
+    //                     match fetch_list_data(&resource, &req, query_string).await {
+    //                         Ok((headers, rows, pagination)) => {
+    //                             ctx.insert("headers", &headers);
+    //                             ctx.insert("rows", &rows);
+    //                             ctx.insert("pagination", &pagination);
+                                
+    //                             info!("📊 Loaded {} items for {} list view", rows.len(), resource_name);
+    //                         }
+    //                         Err(e) => {
+    //                             error!("❌ Failed to fetch list data for {}: {}", resource_name, e);
+    //                             // Provide empty data as fallback
+    //                             let headers = vec!["id", "name", "email", "created_at"];
+    //                             let rows: Vec<serde_json::Map<String, serde_json::Value>> = vec![];
+    //                             let pagination = serde_json::json!({
+    //                                 "current": 1,
+    //                                 "total": 1,
+    //                                 "prev": null,
+    //                                 "next": null
+    //                             });
+                                
+    //                             ctx.insert("headers", &headers);
+    //                             ctx.insert("rows", &rows);
+    //                             ctx.insert("pagination", &pagination);
+    //                             ctx.insert("toast_message", &"Failed to load data. Please refresh the page.");
+    //                             ctx.insert("toast_type", &"error");
+    //                         }
+    //                     }
+
+    //                     render_template("list.html.tera", ctx).await
+    //                 }
+    //                 Err(response) => response
+    //             }
+    //         }
+    //     }
+    // }));
     scope = scope.route("/list", web::get().to({
         let resource = Arc::clone(&resource_arc);
         let resource_name = ui_resource_name.clone();
@@ -55,10 +129,11 @@ pub fn register_admix_resource_routes(resource: Box<dyn AdmixResource>) -> Scope
                         
                         let mut ctx = create_base_template_context(&resource_name, &resource.base_path(), &claims);
                         
-                        // Check for success/error messages from query parameters
+                        // Parse query parameters
                         let query_params: std::collections::HashMap<String, String> = 
                             serde_urlencoded::from_str(&query_string).unwrap_or_default();
                         
+                        // Check for success/error messages from query parameters
                         if query_params.contains_key("success") {
                             match query_params.get("success").unwrap().as_str() {
                                 "created" => ctx.insert("toast_message", &"Successfully created new item!"),
@@ -79,7 +154,13 @@ pub fn register_admix_resource_routes(resource: Box<dyn AdmixResource>) -> Scope
                             ctx.insert("toast_type", &"error");
                         }
                         
-                        // Fetch actual data from the resource
+                        // Get filters configuration and current values
+                        let (filters, current_filters) = crate::helpers::resource_helper::get_filters_data(&resource, &query_params);
+                        ctx.insert("filters", &filters);
+                        ctx.insert("current_filters", &current_filters);
+                        ctx.insert("has_active_filters", &(!current_filters.is_empty()));
+                        
+                        // Fetch actual data from the resource (with filters applied)
                         match fetch_list_data(&resource, &req, query_string).await {
                             Ok((headers, rows, pagination)) => {
                                 ctx.insert("headers", &headers);
@@ -97,7 +178,8 @@ pub fn register_admix_resource_routes(resource: Box<dyn AdmixResource>) -> Scope
                                     "current": 1,
                                     "total": 1,
                                     "prev": null,
-                                    "next": null
+                                    "next": null,
+                                    "filter_params": ""
                                 });
                                 
                                 ctx.insert("headers", &headers);

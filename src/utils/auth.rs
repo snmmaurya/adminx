@@ -59,6 +59,7 @@ pub async fn extract_claims_from_request(
 pub enum AdminxStatus {
     Active,
     Inactive,
+    Suspended,
 }
 
 pub enum InitOutcome {
