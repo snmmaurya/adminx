@@ -1,6 +1,6 @@
 [package]
 name = "adminx"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 authors = ["Snm Maurya <inxmaurya@gmail.com>"]
 description = "A powerful, modern admin panel framework for Rust built on Actix Web and MongoDB with automatic CRUD, role-based access control, and a beautiful responsive UI"

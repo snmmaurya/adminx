@@ -16,7 +16,6 @@ use crate::utils::{
 };
 use actix_files as fs;
 use std::path::PathBuf;
-use crate::helpers::asset_helper::{mount_adminx_static};
 
 #[derive(Debug, Clone)]
 pub struct AdminxConfig {
@@ -129,10 +128,8 @@ pub fn get_adminx_session_middleware(config: &AdminxConfig) -> SessionMiddleware
 pub fn configure_adminx_services(cfg: &mut web::ServiceConfig) {
     let config = get_adminx_config();
     cfg.app_data(web::Data::new(config));
-    mount_adminx_static(cfg);
     cfg.service(register_all_admix_routes());
 
-    // mount_adminx_static(cfg);
 }
 
 pub async fn adminx_initialize(db: Database) -> Result<(), AnyhowError> {
