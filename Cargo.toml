@@ -2,6 +2,7 @@
 name = "adminx"
 version = "0.1.1"
 edition = "2021"
+rust-version = "1.89.0"
 authors = ["Snm Maurya <inxmaurya@gmail.com>"]
 description = "A powerful, modern admin panel framework for Rust built on Actix Web and MongoDB with automatic CRUD, role-based access control, and a beautiful responsive UI"
 documentation = "https://docs.rs/adminx"

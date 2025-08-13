@@ -70,10 +70,6 @@ pub trait AdmixResource: Send + Sync {
         vec!["_id", "created_at", "updated_at"]
     }
 
-    fn permit_filter_keys(&self) -> Vec<&'static str> {
-        vec![] // Override this to specify which fields can be searched
-    }
-
     // ===========================
     // UI STRUCTURE METHODS (Optional)
     // ===========================

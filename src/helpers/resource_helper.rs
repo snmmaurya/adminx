@@ -159,100 +159,6 @@ pub fn get_default_list_structure() -> Value {
     })
 }
 
-/// Fetch and prepare list data directly from database
-// pub async fn fetch_list_data(
-//     resource: &Arc<Box<dyn AdmixResource>>,
-//     req: &HttpRequest,
-//     _query_string: String,
-// ) -> Result<(Vec<String>, Vec<serde_json::Map<String, Value>>, Value), Box<dyn std::error::Error + Send + Sync>> {
-//     let collection = resource.get_collection();
-    
-//     // Parse query parameters for pagination
-//     let query_params: std::collections::HashMap<String, String> = 
-//         serde_urlencoded::from_str(req.query_string()).unwrap_or_default();
-    
-//     let page: u64 = query_params.get("page")
-//         .and_then(|p| p.parse().ok())
-//         .unwrap_or(1);
-//     let per_page: u64 = query_params.get("per_page")
-//         .and_then(|p| p.parse().ok())
-//         .unwrap_or(10);
-    
-//     let skip = (page - 1) * per_page;
-    
-//     // Get total count
-//     let total = collection.count_documents(mongodb::bson::doc! {}, None).await
-//         .unwrap_or(0);
-    
-//     // Fetch documents with pagination
-//     let mut find_options = mongodb::options::FindOptions::default();
-//     find_options.skip = Some(skip);
-//     find_options.limit = Some(per_page as i64);
-//     find_options.sort = Some(mongodb::bson::doc! { "created_at": -1 });
-    
-//     let mut cursor = collection.find(mongodb::bson::doc! {}, find_options).await
-//         .map_err(|e| format!("Database query failed: {}", e))?;
-    
-//     let mut documents = Vec::new();
-//     while let Some(doc) = cursor.try_next().await.unwrap_or(None) {
-//         documents.push(doc);
-//     }
-    
-//     // Convert MongoDB documents to the format expected by the template
-//     let headers = vec![
-//         "id".to_string(),
-//         "name".to_string(), 
-//         "email".to_string(),
-//         "created_at".to_string()
-//     ];
-    
-//     let rows: Vec<serde_json::Map<String, Value>> = documents
-//         .into_iter()
-//         .map(|doc| {
-//             let mut row = serde_json::Map::new();
-            
-//             // Handle MongoDB ObjectId
-//             if let Ok(oid) = doc.get_object_id("_id") {
-//                 row.insert("id".to_string(), Value::String(oid.to_hex()));
-//             }
-            
-//             // Extract other fields
-//             if let Ok(name) = doc.get_str("name") {
-//                 row.insert("name".to_string(), Value::String(name.to_string()));
-//             }
-            
-//             if let Ok(email) = doc.get_str("email") {
-//                 row.insert("email".to_string(), Value::String(email.to_string()));
-//             }
-            
-//             // Handle created_at timestamp
-//             if let Ok(created_at) = doc.get_datetime("created_at") {
-//                 let timestamp_ms = created_at.timestamp_millis();
-//                 if let Some(datetime) = chrono::DateTime::from_timestamp_millis(timestamp_ms) {
-//                     row.insert("created_at".to_string(), 
-//                              Value::String(datetime.format("%Y-%m-%d %H:%M:%S").to_string()));
-//                 } else {
-//                     row.insert("created_at".to_string(), Value::String("N/A".to_string()));
-//                 }
-//             } else {
-//                 row.insert("created_at".to_string(), Value::String("N/A".to_string()));
-//             }
-            
-//             row
-//         })
-//         .collect();
-    
-//     let total_pages = if per_page > 0 { (total + per_page - 1) / per_page } else { 1 }; // Ceiling division
-//     let pagination = serde_json::json!({
-//         "current": page,
-//         "total": total_pages,
-//         "prev": if page > 1 { Some(page - 1) } else { None },
-//         "next": if page < total_pages { Some(page + 1) } else { None }
-//     });
-    
-//     info!("Fetched {} items for list view (page {} of {})", rows.len(), page, total_pages);
-//     Ok((headers, rows, pagination))
-// }
 
 pub async fn fetch_list_data(
     resource: &Arc<Box<dyn AdmixResource>>,
@@ -517,6 +423,8 @@ pub async fn fetch_single_item_data(
     info!("Fetched single item with id: {} for resource: {}", id, resource.resource_name());
     Ok(record)
 }
+
+
 pub fn get_default_form_structure() -> Value {
     serde_json::json!({
         "groups": [

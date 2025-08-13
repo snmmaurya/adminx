@@ -509,10 +509,12 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 Support
 
+- 📖 [How it works](https://adminx.snmmaurya.com/get-started)
+- 📖 [Support](https://adminx.snmmaurya.com/support)
 - 📖 [Documentation](https://docs.rs/adminx)
 - 💬 [Discussions](https://github.com/snmmaurya/adminx/discussions)
 - 🐛 [Issues](https://github.com/snmmaurya/adminx/issues)
-- 📧 Email: inxmaurya@gmail.com
+- 📧 Email: sxmmaurya@gmail.com
 
 ---
 
