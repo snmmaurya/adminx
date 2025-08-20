@@ -25,7 +25,6 @@
   </button>
 </div>
 <script>
-  // Auto-hide toast after 5 seconds
   setTimeout(function() {
     const toast = document.getElementById('toast');
     if (toast) {
@@ -45,7 +44,7 @@
         Edit {{ resource_name }}
       </h2>
       <a href="{{ base_path }}/view/{{ item_id }}" 
-         class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-md text-sm font-medium">
+         class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200">
         Cancel
       </a>
     </div>
@@ -53,313 +52,442 @@
 
   <!-- Form -->
   <form method="post" action="{{ base_path }}/update/{{ item_id }}" class="px-6 py-4">
-    <!-- Single column layout with proper spacing -->
-    <div class="space-y-6">
-      
-      <!-- Name Field -->
-      {% if record.name is defined %}
-      <div>
-        <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-          Name
-        </label>
-        <input type="text" 
-               name="name" 
-               id="name"
-               value="{{ record.name | default(value="") }}"
-               class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full max-w-md px-3 py-3 text-base border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-               required>
-      </div>
-      {% endif %}
-
-      <!-- Email Field -->
-      {% if record.email is defined %}
-      <div>
-        <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-          Email
-        </label>
-        <input type="email" 
-               name="email" 
-               id="email"
-               value="{{ record.email | default(value="") }}"
-               class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full max-w-md px-3 py-3 text-base border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-               required>
-      </div>
-      {% endif %}
-
-      <!-- Dynamic fields based on form structure -->
-      {% for field in fields %}
-        {% if field.name != "name" and field.name != "email" %}
-        <div>
-          <label for="{{ field.name }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            {{ field.label | default(value=field.name | title) }}
-          </label>
-          
-          {% if field.type == "textarea" %}
-            <textarea name="{{ field.name }}" id="{{ field.name }}"
-                      class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full max-w-md px-3 py-3 text-base border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                      rows="4"
-                      {% if field.required %}required{% endif %}>{{ record[field.name] | default(value="") }}</textarea>
-          {% elif field.type == "select" %}
-            <select name="{{ field.name }}" id="{{ field.name }}"
-                    class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full max-w-md px-3 py-3 text-base border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                    {% if field.required %}required{% endif %}>
-              {% for option in field.options %}
-                <option value="{{ option.value }}" {% if record[field.name] == option.value %}selected{% endif %}>
-                  {{ option.label }}
-                </option>
-              {% endfor %}
-            </select>
-          {% elif field.type == "checkbox" %}
-            <div class="flex items-center">
-              <input type="checkbox" 
-                     name="{{ field.name }}" 
-                     id="{{ field.name }}"
-                     value="1"
-                     {% if record[field.name] %}checked{% endif %}
-                     class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600">
-              <label for="{{ field.name }}" class="ml-2 block text-sm text-gray-700 dark:text-gray-300">
-                {{ field.label | default(value=field.name | title) }}
-              </label>
-            </div>
-          {% elif field.type == "boolean" %}
-            <div class="space-y-2">
-              <div class="flex items-center">
-                <input type="radio" 
-                       name="{{ field.name }}" 
-                       id="{{ field.name }}_true" 
-                       value="true"
-                       {% if record[field.name] == "true" or record[field.name] == true %}checked{% endif %}
-                       class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:bg-gray-700 dark:border-gray-600"
-                       {% if field.required %}required{% endif %}>
-                <label for="{{ field.name }}_true" class="ml-2 block text-sm text-gray-700 dark:text-gray-300">
-                  Yes
-                </label>
-              </div>
-              <div class="flex items-center">
-                <input type="radio" 
-                       name="{{ field.name }}" 
-                       id="{{ field.name }}_false" 
-                       value="false"
-                       {% if record[field.name] == "false" or record[field.name] == false %}checked{% endif %}
-                       class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:bg-gray-700 dark:border-gray-600"
-                       {% if field.required %}required{% endif %}>
-                <label for="{{ field.name }}_false" class="ml-2 block text-sm text-gray-700 dark:text-gray-300">
-                  No
-                </label>
-              </div>
-            </div>
-          {% elif field.type == "editor_text" %}
-            <div class="border border-gray-300 dark:border-gray-600 rounded-md">
-              <div class="flex items-center justify-between px-3 py-2 border-b border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 rounded-t-md">
-                <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Text Editor</span>
-                <div class="flex space-x-2">
-                  <button type="button" onclick="formatText('{{ field.name }}', 'bold')" class="p-1 text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200">
-                    <strong>B</strong>
-                  </button>
-                  <button type="button" onclick="formatText('{{ field.name }}', 'italic')" class="p-1 text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200">
-                    <em>I</em>
-                  </button>
-                </div>
-              </div>
-              <textarea name="{{ field.name }}" 
-                        id="{{ field.name }}"
-                        rows="8"
-                        class="block w-full px-3 py-3 text-base border-0 focus:ring-0 resize-none dark:bg-gray-700 dark:text-white"
-                        placeholder="Enter your text here..."
-                        {% if field.required %}required{% endif %}>{{ record[field.name] | default(value="") }}</textarea>
-            </div>
-          {% elif field.type == "editor_html" %}
-            <div class="border border-gray-300 dark:border-gray-600 rounded-md">
-              <div class="flex items-center justify-between px-3 py-2 border-b border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 rounded-t-md">
-                <span class="text-sm font-medium text-gray-700 dark:text-gray-300">HTML Editor</span>
-                <div class="flex space-x-2">
-                  <button type="button" onclick="insertHtml('{{ field.name }}', '<p></p>')" class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded dark:bg-blue-900 dark:text-blue-300">
-                    &lt;p&gt;
-                  </button>
-                  <button type="button" onclick="insertHtml('{{ field.name }}', '<div></div>')" class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded dark:bg-blue-900 dark:text-blue-300">
-                    &lt;div&gt;
-                  </button>
-                  <button type="button" onclick="insertHtml('{{ field.name }}', '<span></span>')" class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded dark:bg-blue-900 dark:text-blue-300">
-                    &lt;span&gt;
-                  </button>
-                </div>
-              </div>
-              <textarea name="{{ field.name }}" 
-                        id="{{ field.name }}"
-                        rows="10"
-                        class="block w-full px-3 py-3 text-base border-0 focus:ring-0 resize-none font-mono dark:bg-gray-700 dark:text-white"
-                        placeholder="<html>&#10;  <body>&#10;    <!-- Your HTML here -->&#10;  </body>&#10;</html>"
-                        {% if field.required %}required{% endif %}>{{ record[field.name] | default(value="") }}</textarea>
-            </div>
-          {% elif field.type == "editor_json" %}
-            <div class="border border-gray-300 dark:border-gray-600 rounded-md">
-              <div class="flex items-center justify-between px-3 py-2 border-b border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 rounded-t-md">
-                <span class="text-sm font-medium text-gray-700 dark:text-gray-300">JSON Editor</span>
-                <div class="flex space-x-2">
-                  <button type="button" onclick="formatJson('{{ field.name }}')" class="px-2 py-1 text-xs bg-green-100 text-green-800 rounded dark:bg-green-900 dark:text-green-300">
-                    Format
-                  </button>
-                  <button type="button" onclick="validateJson('{{ field.name }}')" class="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded dark:bg-yellow-900 dark:text-yellow-300">
-                    Validate
-                  </button>
-                </div>
-              </div>
-              <textarea name="{{ field.name }}" 
-                        id="{{ field.name }}"
-                        rows="10"
-                        class="block w-full px-3 py-3 text-base border-0 focus:ring-0 resize-none font-mono dark:bg-gray-700 dark:text-white"
-                        placeholder="{&#10;  &quot;key&quot;: &quot;value&quot;,&#10;  &quot;array&quot;: [1, 2, 3],&#10;  &quot;nested&quot;: {&#10;    &quot;property&quot;: true&#10;  }&#10;}"
-                        {% if field.required %}required{% endif %}>{{ record[field.name] | default(value="") }}</textarea>
-              <div id="{{ field.name }}_status" class="px-3 py-2 text-sm hidden"></div>
-            </div>
-          {% elif field.type == "editor" %}
-            <div class="border border-gray-300 dark:border-gray-600 rounded-md" data-editor="{{ field.name }}">
-              <div class="flex items-center justify-between px-3 py-2 border-b border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 rounded-t-md">
-                <div class="flex items-center space-x-4">
-                  <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Editor</span>
-                  <div class="flex bg-white dark:bg-gray-600 rounded-md p-1 shadow-sm">
-                    <button type="button" onclick="switchEditorMode('{{ field.name }}', 'text')" 
-                            id="{{ field.name }}_mode_text"
-                            class="px-3 py-1 text-xs font-medium rounded transition-colors bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
-                      Text
-                    </button>
-                    <button type="button" onclick="switchEditorMode('{{ field.name }}', 'html')" 
-                            id="{{ field.name }}_mode_html"
-                            class="px-3 py-1 text-xs font-medium rounded transition-colors text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200">
-                      HTML
-                    </button>
-                    <button type="button" onclick="switchEditorMode('{{ field.name }}', 'json')" 
-                            id="{{ field.name }}_mode_json"
-                            class="px-3 py-1 text-xs font-medium rounded transition-colors text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200">
-                      JSON
-                    </button>
-                  </div>
-                </div>
-                
-                <!-- Text Mode Tools -->
-                <div id="{{ field.name }}_tools_text" class="flex space-x-2">
-                  <button type="button" onclick="formatText('{{ field.name }}', 'bold')" class="p-1 text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200">
-                    <strong>B</strong>
-                  </button>
-                  <button type="button" onclick="formatText('{{ field.name }}', 'italic')" class="p-1 text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200">
-                    <em>I</em>
-                  </button>
-                </div>
-                
-                <!-- HTML Mode Tools -->
-                <div id="{{ field.name }}_tools_html" class="hidden flex space-x-2">
-                  <button type="button" onclick="insertHtml('{{ field.name }}', '<p></p>')" class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded dark:bg-blue-900 dark:text-blue-300">
-                    &lt;p&gt;
-                  </button>
-                  <button type="button" onclick="insertHtml('{{ field.name }}', '<div></div>')" class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded dark:bg-blue-900 dark:text-blue-300">
-                    &lt;div&gt;
-                  </button>
-                  <button type="button" onclick="insertHtml('{{ field.name }}', '<span></span>')" class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded dark:bg-blue-900 dark:text-blue-300">
-                    &lt;span&gt;
-                  </button>
-                  <button type="button" onclick="insertHtml('{{ field.name }}', '<a href=&quot;&quot;></a>')" class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded dark:bg-blue-900 dark:text-blue-300">
-                    &lt;a&gt;
-                  </button>
-                </div>
-                
-                <!-- JSON Mode Tools -->
-                <div id="{{ field.name }}_tools_json" class="hidden flex space-x-2">
-                  <button type="button" onclick="formatJson('{{ field.name }}')" class="px-2 py-1 text-xs bg-green-100 text-green-800 rounded dark:bg-green-900 dark:text-green-300">
-                    Format
-                  </button>
-                  <button type="button" onclick="validateJson('{{ field.name }}')" class="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded dark:bg-yellow-900 dark:text-yellow-300">
-                    Validate
-                  </button>
-                  <button type="button" onclick="insertJson('{{ field.name }}', 'object')" class="px-2 py-1 text-xs bg-purple-100 text-purple-800 rounded dark:bg-purple-900 dark:text-purple-300">
-                    { }
-                  </button>
-                  <button type="button" onclick="insertJson('{{ field.name }}', 'array')" class="px-2 py-1 text-xs bg-purple-100 text-purple-800 rounded dark:bg-purple-900 dark:text-purple-300">
-                    [ ]
-                  </button>
-                </div>
-              </div>
-              
-              <!-- Hidden input to store the editor mode -->
-              <input type="hidden" name="{{ field.name }}_mode" id="{{ field.name }}_mode" value="text">
-              
-              <textarea name="{{ field.name }}" 
-                        id="{{ field.name }}"
-                        rows="12"
-                        class="block w-full px-3 py-3 text-base border-0 focus:ring-0 resize-none dark:bg-gray-700 dark:text-white"
-                        placeholder="Enter your content here..."
-                        {% if field.required %}required{% endif %}>{{ record[field.name] | default(value="") }}</textarea>
-              <div id="{{ field.name }}_status" class="px-3 py-2 text-sm hidden"></div>
-            </div>
-          {% elif field.type == "number" %}
-            <input type="number" 
-                   name="{{ field.name }}" 
-                   id="{{ field.name }}"
-                   value="{{ record[field.name] | default(value="") }}"
-                   class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full max-w-md px-3 py-3 text-base border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                   {% if field.min %}min="{{ field.min }}"{% endif %}
-                   {% if field.max %}max="{{ field.max }}"{% endif %}
-                   {% if field.step %}step="{{ field.step }}"{% endif %}
-                   {% if field.required %}required{% endif %}>
-          {% elif field.type == "date" %}
-            <input type="date" 
-                   name="{{ field.name }}" 
-                   id="{{ field.name }}"
-                   value="{{ record[field.name] | default(value="") }}"
-                   class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full max-w-md px-3 py-3 text-base border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                   {% if field.required %}required{% endif %}>
-          {% elif field.type == "datetime-local" %}
-            <input type="datetime-local" 
-                   name="{{ field.name }}" 
-                   id="{{ field.name }}"
-                   value="{{ record[field.name] | default(value="") }}"
-                   class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full max-w-md px-3 py-3 text-base border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                   {% if field.required %}required{% endif %}>
-          {% elif field.type == "time" %}
-            <input type="time" 
-                   name="{{ field.name }}" 
-                   id="{{ field.name }}"
-                   value="{{ record[field.name] | default(value="") }}"
-                   class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full max-w-md px-3 py-3 text-base border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                   {% if field.required %}required{% endif %}>
-          {% elif field.type == "url" %}
-            <input type="url" 
-                   name="{{ field.name }}" 
-                   id="{{ field.name }}"
-                   value="{{ record[field.name] | default(value="") }}"
-                   class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full max-w-md px-3 py-3 text-base border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                   placeholder="https://example.com"
-                   {% if field.required %}required{% endif %}>
-          {% elif field.type == "tel" %}
-            <input type="tel" 
-                   name="{{ field.name }}" 
-                   id="{{ field.name }}"
-                   value="{{ record[field.name] | default(value="") }}"
-                   class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full max-w-md px-3 py-3 text-base border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                   {% if field.required %}required{% endif %}>
-          {% elif field.type == "password" %}
-            <input type="password" 
-                   name="{{ field.name }}" 
-                   id="{{ field.name }}"
-                   class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full max-w-md px-3 py-3 text-base border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                   placeholder="Leave blank to keep current password"
-                   {% if field.required %}required{% endif %}>
-          {% else %}
-            <input type="{{ field.type | default(value="text") }}" 
-                   name="{{ field.name }}" 
-                   id="{{ field.name }}"
-                   value="{{ record[field.name] | default(value="") }}"
-                   class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full max-w-md px-3 py-3 text-base border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                   {% if field.required %}required{% endif %}>
-          {% endif %}
-          
-          {% if field.help_text %}
-          <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">{{ field.help_text }}</p>
-          {% endif %}
+    {% for group in form.groups %}
+      <div class="mb-8">
+        <!-- Group Title -->
+        {% if group.title %}
+        <div class="mb-6">
+          <h3 class="text-lg font-semibold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-600 pb-2">
+            {{ group.title }}
+          </h3>
         </div>
         {% endif %}
-      {% endfor %}
 
-    </div>
+        <!-- Fields in single column -->
+        <div class="space-y-6">
+          {% for field in group.fields %}
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" for="{{ field.name }}">
+                {{ field.label }}
+                {% if field.required %}
+                  <span class="text-red-500">*</span>
+                {% endif %}
+              </label>
+              
+              {% if field.field_type == "select" %}
+                <select name="{{ field.name }}" 
+                        id="{{ field.name }}" 
+                        class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full max-w-md px-3 py-3 text-base border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                        {% if field.required %}required{% endif %}>
+                  <option value="">Select {{ field.label }}...</option>
+                  {% if field.options %}
+                    {% for opt in field.options %}
+                      <option value="{{ opt.value }}" {% if record[field.name] and record[field.name] == opt.value %}selected{% endif %}>{{ opt.label }}</option>
+                    {% endfor %}
+                  {% endif %}
+                </select>
+              
+              {% elif field.field_type == "checkbox" %}
+                <div class="flex items-center">
+                  <input type="checkbox" 
+                         name="{{ field.name }}" 
+                         id="{{ field.name }}" 
+                         value="1"
+                         {% if record[field.name] and (record[field.name] == "true" or record[field.name] == true or record[field.name] == "1") %}checked{% endif %}
+                         class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600">
+                  <label for="{{ field.name }}" class="ml-2 block text-sm text-gray-700 dark:text-gray-300">
+                    {{ field.label }}
+                  </label>
+                </div>
+              
+              {% elif field.field_type == "boolean" %}
+                <div class="space-y-2">
+                  {% if field.options %}
+                    {% for opt in field.options %}
+                      <div class="flex items-center">
+                        <input type="radio" 
+                               name="{{ field.name }}" 
+                               id="{{ field.name }}_{{ opt.value }}" 
+                               value="{{ opt.value }}"
+                               {% if record[field.name] and record[field.name] == opt.value %}checked
+                               {% elif field.name == "deleted" and opt.value == "true" and record[field.name] and (record[field.name] == true or record[field.name] == "true") %}checked
+                               {% elif field.name == "deleted" and opt.value == "false" and (not record[field.name] or record[field.name] == false or record[field.name] == "false") %}checked
+                               {% endif %}
+                               class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:bg-gray-700 dark:border-gray-600"
+                               {% if field.required %}required{% endif %}>
+                        <label for="{{ field.name }}_{{ opt.value }}" class="ml-2 block text-sm text-gray-700 dark:text-gray-300">
+                          {{ opt.label }}
+                        </label>
+                      </div>
+                    {% endfor %}
+                  {% else %}
+                    <div class="flex items-center">
+                      <input type="radio" 
+                             name="{{ field.name }}" 
+                             id="{{ field.name }}_true" 
+                             value="true"
+                             {% if record[field.name] and (record[field.name] == "true" or record[field.name] == true) %}checked{% endif %}
+                             class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:bg-gray-700 dark:border-gray-600"
+                             {% if field.required %}required{% endif %}>
+                      <label for="{{ field.name }}_true" class="ml-2 block text-sm text-gray-700 dark:text-gray-300">
+                        Yes
+                      </label>
+                    </div>
+                    <div class="flex items-center">
+                      <input type="radio" 
+                             name="{{ field.name }}" 
+                             id="{{ field.name }}_false" 
+                             value="false"
+                             {% if record[field.name] and (record[field.name] == "false" or record[field.name] == false) %}checked{% endif %}
+                             class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:bg-gray-700 dark:border-gray-600"
+                             {% if field.required %}required{% endif %}>
+                      <label for="{{ field.name }}_false" class="ml-2 block text-sm text-gray-700 dark:text-gray-300">
+                        No
+                      </label>
+                    </div>
+                  {% endif %}
+                </div>
+              
+              {% elif field.field_type == "textarea" %}
+                <textarea name="{{ field.name }}" 
+                          id="{{ field.name }}"
+                          rows="4"
+                          class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full max-w-md px-3 py-3 text-base border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                          {% if field.required %}required{% endif %}>{{ record[field.name] | default(value="") }}</textarea>
+              
+              {% elif field.field_type == "editor_text" %}
+                <div class="border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm">
+                  <div class="flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-gray-700 border-b border-gray-300 dark:border-gray-600 rounded-t-lg">
+                    <div class="flex items-center space-x-3">
+                      <svg class="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                      </svg>
+                      <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Text Editor</span>
+                    </div>
+                    <div class="flex items-center space-x-1">
+                      <button type="button" onclick="formatText('{{ field.name }}', 'bold')" 
+                              class="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-200 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-600 rounded transition-colors" title="Bold">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M3 4.5A1.5 1.5 0 014.5 3h5.586a2.5 2.5 0 011.789 4.293 2.5 2.5 0 01-.172 3.414l-.828.828A2.5 2.5 0 018.586 17H4.5A1.5 1.5 0 013 15.5v-11z"/>
+                        </svg>
+                      </button>
+                      <button type="button" onclick="formatText('{{ field.name }}', 'italic')" 
+                              class="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-200 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-600 rounded transition-colors" title="Italic">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M8.5 3.5A1.5 1.5 0 0010 2h3.5a1.5 1.5 0 110 3H12l-2 9h1.5a1.5 1.5 0 110 3H7.5a1.5 1.5 0 110-3H9l2-9H8.5a1.5 1.5 0 010-3z"/>
+                        </svg>
+                      </button>
+                      <button type="button" onclick="insertText('{{ field.name }}', 'heading')" 
+                              class="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-200 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-600 rounded transition-colors" title="Heading">
+                        <span class="text-sm font-bold">H1</span>
+                      </button>
+                      <button type="button" onclick="insertText('{{ field.name }}', 'list')" 
+                              class="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-200 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-600 rounded transition-colors" title="List">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                  <div class="relative">
+                    <textarea name="{{ field.name }}" 
+                              id="{{ field.name }}"
+                              rows="8"
+                              class="block w-full px-4 py-3 text-base border-0 focus:ring-0 resize-y dark:bg-gray-700 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
+                              placeholder="Start writing your content here..."
+                              {% if field.required %}required{% endif %}>{{ record[field.name] | default(value="") }}</textarea>
+                    <div class="absolute bottom-3 right-3 text-xs text-gray-400 bg-white dark:bg-gray-700 px-2 py-1 rounded">
+                      <span id="{{ field.name }}_count">{{ record[field.name] | default(value="") | length }}</span> characters
+                    </div>
+                  </div>
+                </div>
+              
+              {% elif field.field_type == "editor_html" %}
+                <div class="border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm">
+                  <div class="flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-gray-700 border-b border-gray-300 dark:border-gray-600 rounded-t-lg">
+                    <div class="flex items-center space-x-3">
+                      <svg class="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
+                      </svg>
+                      <span class="text-sm font-medium text-gray-700 dark:text-gray-300">HTML Editor</span>
+                    </div>
+                    <div class="flex items-center space-x-1">
+                      <button type="button" onclick="insertHtml('{{ field.name }}', 'tag', 'div')" 
+                              class="px-3 py-1 text-xs bg-blue-100 text-blue-800 rounded hover:bg-blue-200 dark:bg-blue-900 dark:text-blue-300 dark:hover:bg-blue-800 transition-colors">
+                        &lt;div&gt;
+                      </button>
+                      <button type="button" onclick="insertHtml('{{ field.name }}', 'tag', 'p')" 
+                              class="px-3 py-1 text-xs bg-blue-100 text-blue-800 rounded hover:bg-blue-200 dark:bg-blue-900 dark:text-blue-300 dark:hover:bg-blue-800 transition-colors">
+                        &lt;p&gt;
+                      </button>
+                      <button type="button" onclick="insertHtml('{{ field.name }}', 'tag', 'span')" 
+                              class="px-3 py-1 text-xs bg-blue-100 text-blue-800 rounded hover:bg-blue-200 dark:bg-blue-900 dark:text-blue-300 dark:hover:bg-blue-800 transition-colors">
+                        &lt;span&gt;
+                      </button>
+                      <button type="button" onclick="insertHtml('{{ field.name }}', 'link')" 
+                              class="px-3 py-1 text-xs bg-green-100 text-green-800 rounded hover:bg-green-200 dark:bg-green-900 dark:text-green-300 dark:hover:bg-green-800 transition-colors">
+                        Link
+                      </button>
+                      <button type="button" onclick="formatHtml('{{ field.name }}')" 
+                              class="px-3 py-1 text-xs bg-purple-100 text-purple-800 rounded hover:bg-purple-200 dark:bg-purple-900 dark:text-purple-300 dark:hover:bg-purple-800 transition-colors">
+                        Format
+                      </button>
+                    </div>
+                  </div>
+                  <div class="relative">
+                    <textarea name="{{ field.name }}" 
+                              id="{{ field.name }}"
+                              rows="10"
+                              class="block w-full px-4 py-3 text-base border-0 focus:ring-0 resize-y font-mono dark:bg-gray-700 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
+                              placeholder="<html>&#10;  <head>&#10;    <title>Page Title</title>&#10;  </head>&#10;  <body>&#10;    <h1>Hello World</h1>&#10;  </body>&#10;</html>"
+                              {% if field.required %}required{% endif %}>{{ record[field.name] | default(value="") }}</textarea>
+                    <div id="{{ field.name }}_html_status" class="absolute bottom-3 right-3 text-xs px-2 py-1 rounded hidden"></div>
+                  </div>
+                </div>
+              
+              {% elif field.field_type == "editor_json" %}
+                <div class="border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm">
+                  <div class="flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-gray-700 border-b border-gray-300 dark:border-gray-600 rounded-t-lg">
+                    <div class="flex items-center space-x-3">
+                      <svg class="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                      </svg>
+                      <span class="text-sm font-medium text-gray-700 dark:text-gray-300">JSON Editor</span>
+                    </div>
+                    <div class="flex items-center space-x-1">
+                      <button type="button" onclick="formatJson('{{ field.name }}')" 
+                              class="px-3 py-1 text-xs bg-green-100 text-green-800 rounded hover:bg-green-200 dark:bg-green-900 dark:text-green-300 dark:hover:bg-green-800 transition-colors">
+                        Format
+                      </button>
+                      <button type="button" onclick="validateJson('{{ field.name }}')" 
+                              class="px-3 py-1 text-xs bg-yellow-100 text-yellow-800 rounded hover:bg-yellow-200 dark:bg-yellow-900 dark:text-yellow-300 dark:hover:bg-yellow-800 transition-colors">
+                        Validate
+                      </button>
+                      <button type="button" onclick="insertJson('{{ field.name }}', 'object')" 
+                              class="px-3 py-1 text-xs bg-purple-100 text-purple-800 rounded hover:bg-purple-200 dark:bg-purple-900 dark:text-purple-300 dark:hover:bg-purple-800 transition-colors">
+                        { }
+                      </button>
+                      <button type="button" onclick="insertJson('{{ field.name }}', 'array')" 
+                              class="px-3 py-1 text-xs bg-purple-100 text-purple-800 rounded hover:bg-purple-200 dark:bg-purple-900 dark:text-purple-300 dark:hover:bg-purple-800 transition-colors">
+                        [ ]
+                      </button>
+                      <button type="button" onclick="minifyJson('{{ field.name }}')" 
+                              class="px-3 py-1 text-xs bg-gray-100 text-gray-800 rounded hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-300 dark:hover:bg-gray-500 transition-colors">
+                        Minify
+                      </button>
+                    </div>
+                  </div>
+                  <div class="relative">
+                    <textarea name="{{ field.name }}" 
+                              id="{{ field.name }}"
+                              rows="12"
+                              class="block w-full px-4 py-3 text-base border-0 focus:ring-0 resize-y font-mono dark:bg-gray-700 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
+                              placeholder="{&#10;  &quot;name&quot;: &quot;example&quot;,&#10;  &quot;version&quot;: &quot;1.0.0&quot;,&#10;  &quot;config&quot;: {&#10;    &quot;enabled&quot;: true,&#10;    &quot;options&quot;: [&quot;option1&quot;, &quot;option2&quot;]&#10;  }&#10;}"
+                              {% if field.required %}required{% endif %}>{{ record[field.name] | default(value="") }}</textarea>
+                    <div id="{{ field.name }}_json_status" class="absolute bottom-3 right-3 text-xs px-2 py-1 rounded hidden"></div>
+                  </div>
+                </div>
+              
+              {% elif field.field_type == "editor" %}
+                <div class="border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm" data-editor="{{ field.name }}">
+                  <div class="flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-gray-700 border-b border-gray-300 dark:border-gray-600 rounded-t-lg">
+                    <div class="flex items-center space-x-4">
+                      <div class="flex items-center space-x-3">
+                        <svg class="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                        </svg>
+                        <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Universal Editor</span>
+                      </div>
+                      <div class="flex bg-white dark:bg-gray-600 rounded-lg p-1 shadow-sm border border-gray-200 dark:border-gray-500">
+                        <button type="button" onclick="switchEditorMode('{{ field.name }}', 'text')" 
+                                id="{{ field.name }}_mode_text"
+                                class="px-3 py-1 text-xs font-medium rounded-md transition-all duration-200 bg-blue-500 text-white shadow-sm">
+                          <svg class="w-3 h-3 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"/>
+                          </svg>
+                          Text
+                        </button>
+                        <button type="button" onclick="switchEditorMode('{{ field.name }}', 'html')" 
+                                id="{{ field.name }}_mode_html"
+                                class="px-3 py-1 text-xs font-medium rounded-md transition-all duration-200 text-gray-600 hover:text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-500">
+                          <svg class="w-3 h-3 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
+                          </svg>
+                          HTML
+                        </button>
+                        <button type="button" onclick="switchEditorMode('{{ field.name }}', 'json')" 
+                                id="{{ field.name }}_mode_json"
+                                class="px-3 py-1 text-xs font-medium rounded-md transition-all duration-200 text-gray-600 hover:text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-500">
+                          <svg class="w-3 h-3 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                          </svg>
+                          JSON
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <!-- Dynamic Toolbar -->
+                    <div id="{{ field.name }}_toolbar" class="flex items-center space-x-1">
+                      <!-- Text Mode Tools -->
+                      <div id="{{ field.name }}_tools_text" class="flex items-center space-x-1">
+                        <button type="button" onclick="formatText('{{ field.name }}', 'bold')" 
+                                class="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-200 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-600 rounded transition-colors" title="Bold">
+                          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M3 4.5A1.5 1.5 0 014.5 3h5.586a2.5 2.5 0 011.789 4.293 2.5 2.5 0 01-.172 3.414l-.828.828A2.5 2.5 0 018.586 17H4.5A1.5 1.5 0 013 15.5v-11z"/>
+                          </svg>
+                        </button>
+                        <button type="button" onclick="formatText('{{ field.name }}', 'italic')" 
+                                class="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-200 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-600 rounded transition-colors" title="Italic">
+                          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M8.5 3.5A1.5 1.5 0 0010 2h3.5a1.5 1.5 0 110 3H12l-2 9h1.5a1.5 1.5 0 110 3H7.5a1.5 1.5 0 110-3H9l2-9H8.5a1.5 1.5 0 010-3z"/>
+                          </svg>
+                        </button>
+                        <button type="button" onclick="insertText('{{ field.name }}', 'heading')" 
+                                class="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-200 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-600 rounded transition-colors" title="Heading">
+                          <span class="text-sm font-bold">H</span>
+                        </button>
+                      </div>
+                      
+                      <!-- HTML Mode Tools -->
+                      <div id="{{ field.name }}_tools_html" class="hidden flex items-center space-x-1">
+                        <button type="button" onclick="insertHtml('{{ field.name }}', 'tag', 'div')" 
+                                class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded hover:bg-blue-200 dark:bg-blue-900 dark:text-blue-300 transition-colors">
+                          div
+                        </button>
+                        <button type="button" onclick="insertHtml('{{ field.name }}', 'tag', 'p')" 
+                                class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded hover:bg-blue-200 dark:bg-blue-900 dark:text-blue-300 transition-colors">
+                          p
+                        </button>
+                        <button type="button" onclick="insertHtml('{{ field.name }}', 'link')" 
+                                class="px-2 py-1 text-xs bg-green-100 text-green-800 rounded hover:bg-green-200 dark:bg-green-900 dark:text-green-300 transition-colors">
+                          link
+                        </button>
+                        <button type="button" onclick="formatHtml('{{ field.name }}')" 
+                                class="px-2 py-1 text-xs bg-purple-100 text-purple-800 rounded hover:bg-purple-200 dark:bg-purple-900 dark:text-purple-300 transition-colors">
+                          format
+                        </button>
+                      </div>
+                      
+                      <!-- JSON Mode Tools -->
+                      <div id="{{ field.name }}_tools_json" class="hidden flex items-center space-x-1">
+                        <button type="button" onclick="formatJson('{{ field.name }}')" 
+                                class="px-2 py-1 text-xs bg-green-100 text-green-800 rounded hover:bg-green-200 dark:bg-green-900 dark:text-green-300 transition-colors">
+                          format
+                        </button>
+                        <button type="button" onclick="validateJson('{{ field.name }}')" 
+                                class="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded hover:bg-yellow-200 dark:bg-yellow-900 dark:text-yellow-300 transition-colors">
+                          validate
+                        </button>
+                        <button type="button" onclick="insertJson('{{ field.name }}', 'object')" 
+                                class="px-2 py-1 text-xs bg-purple-100 text-purple-800 rounded hover:bg-purple-200 dark:bg-purple-900 dark:text-purple-300 transition-colors">
+                          { }
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- Hidden input to store the editor mode -->
+                  <input type="hidden" name="{{ field.name }}_mode" id="{{ field.name }}_mode" value="text">
+                  
+                  <div class="relative">
+                    <textarea name="{{ field.name }}" 
+                              id="{{ field.name }}"
+                              rows="14"
+                              class="block w-full px-4 py-3 text-base border-0 focus:ring-0 resize-y dark:bg-gray-700 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
+                              placeholder="Start typing your content here..."
+                              {% if field.required %}required{% endif %}>{{ record[field.name] | default(value="") }}</textarea>
+                    <div id="{{ field.name }}_status" class="absolute bottom-3 right-3 text-xs px-2 py-1 rounded hidden"></div>
+                    <div class="absolute bottom-3 left-3 text-xs text-gray-400 bg-white dark:bg-gray-700 px-2 py-1 rounded">
+                      <span id="{{ field.name }}_line_count">{{ record[field.name] | default(value="") | split(pat="\n") | length }}</span> lines • <span id="{{ field.name }}_char_count">{{ record[field.name] | default(value="") | length }}</span> chars
+                    </div>
+                  </div>
+                </div>
+              
+              {% elif field.field_type == "date" %}
+                <input type="date" 
+                       name="{{ field.name }}" 
+                       id="{{ field.name }}" 
+                       value="{{ record[field.name] | default(value="") }}"
+                       class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full max-w-md px-3 py-3 text-base border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                       {% if field.required %}required{% endif %}>
+              
+              {% elif field.field_type == "datetime-local" %}
+                <input type="datetime-local" 
+                       name="{{ field.name }}" 
+                       id="{{ field.name }}" 
+                       value="{{ record[field.name] | default(value="") }}"
+                       class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full max-w-md px-3 py-3 text-base border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                       {% if field.required %}required{% endif %}>
+              
+              {% elif field.field_type == "time" %}
+                <input type="time" 
+                       name="{{ field.name }}" 
+                       id="{{ field.name }}" 
+                       value="{{ record[field.name] | default(value="") }}"
+                       class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full max-w-md px-3 py-3 text-base border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                       {% if field.required %}required{% endif %}>
+              
+              {% elif field.field_type == "number" %}
+                <input type="number" 
+                       name="{{ field.name }}" 
+                       id="{{ field.name }}" 
+                       value="{{ record[field.name] | default(value="") }}"
+                       class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full max-w-md px-3 py-3 text-base border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                       {% if field.min %}min="{{ field.min }}"{% endif %}
+                       {% if field.max %}max="{{ field.max }}"{% endif %}
+                       {% if field.step %}step="{{ field.step }}"{% endif %}
+                       {% if field.required %}required{% endif %}>
+              
+              {% elif field.field_type == "email" %}
+                <input type="email" 
+                       name="{{ field.name }}" 
+                       id="{{ field.name }}" 
+                       value="{{ record[field.name] | default(value="") }}"
+                       class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full max-w-md px-3 py-3 text-base border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                       {% if field.required %}required{% endif %}>
+              
+              {% elif field.field_type == "url" %}
+                <input type="url" 
+                       name="{{ field.name }}" 
+                       id="{{ field.name }}" 
+                       value="{{ record[field.name] | default(value="") }}"
+                       placeholder="https://example.com"
+                       class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full max-w-md px-3 py-3 text-base border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                       {% if field.required %}required{% endif %}>
+              
+              {% elif field.field_type == "tel" %}
+                <input type="tel" 
+                       name="{{ field.name }}" 
+                       id="{{ field.name }}" 
+                       value="{{ record[field.name] | default(value="") }}"
+                       class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full max-w-md px-3 py-3 text-base border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                       {% if field.required %}required{% endif %}>
+              
+              {% elif field.field_type == "password" %}
+                <input type="password" 
+                       name="{{ field.name }}" 
+                       id="{{ field.name }}" 
+                       placeholder="Leave blank to keep current password"
+                       class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full max-w-md px-3 py-3 text-base border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                       {% if field.required %}required{% endif %}>
+              
+              {% else %}
+                <input type="text" 
+                       name="{{ field.name }}" 
+                       id="{{ field.name }}" 
+                       value="{{ record[field.name] | default(value="") }}"
+                       class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full max-w-md px-3 py-3 text-base border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                       {% if field.required %}required{% endif %}>
+              {% endif %}
+
+              {% if field.help_text %}
+              <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">{{ field.help_text }}</p>
+              {% endif %}
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    {% endfor %}
 
     <!-- Form Actions -->
     <div class="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
@@ -389,11 +517,17 @@
   </form>
 </div>
 
-<!-- Read-only Information -->
-{% if record.created_at or record.updated_at %}
+<!-- System Information -->
+{% if record.created_at or record.updated_at or record.id %}
 <div class="mt-6 bg-gray-50 dark:bg-gray-700 rounded-lg p-6">
   <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-4">System Information</h3>
-  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
+    {% if record.id %}
+    <div>
+      <span class="font-medium text-gray-700 dark:text-gray-300">ID:</span>
+      <span class="text-gray-600 dark:text-gray-400 ml-2 font-mono">{{ record.id }}</span>
+    </div>
+    {% endif %}
     {% if record.created_at %}
     <div>
       <span class="font-medium text-gray-700 dark:text-gray-300">Created:</span>
@@ -409,148 +543,315 @@
   </div>
 </div>
 {% endif %}
-{% endblock content %}
-
 
 <script>
-// Combined Editor Mode Switching
+// Enhanced Editor Functions with better UX
+
+// Universal Editor Mode Switching
 function switchEditorMode(fieldName, mode) {
   const textarea = document.getElementById(fieldName);
   const modeInput = document.getElementById(fieldName + '_mode');
   
-  // Update mode buttons
+  if (!textarea || !modeInput) return;
+  
+  // Update mode buttons with smooth transitions
   const textBtn = document.getElementById(fieldName + '_mode_text');
   const htmlBtn = document.getElementById(fieldName + '_mode_html');
   const jsonBtn = document.getElementById(fieldName + '_mode_json');
   
   // Reset all button styles
   [textBtn, htmlBtn, jsonBtn].forEach(btn => {
-    btn.className = 'px-3 py-1 text-xs font-medium rounded transition-colors text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200';
+    if (btn) {
+      btn.className = 'px-3 py-1 text-xs font-medium rounded-md transition-all duration-200 text-gray-600 hover:text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-500';
+    }
   });
   
-  // Hide all tool panels
-  document.getElementById(fieldName + '_tools_text').classList.add('hidden');
-  document.getElementById(fieldName + '_tools_html').classList.add('hidden');
-  document.getElementById(fieldName + '_tools_json').classList.add('hidden');
+  // Hide all tool panels with animation
+  const textTools = document.getElementById(fieldName + '_tools_text');
+  const htmlTools = document.getElementById(fieldName + '_tools_html');
+  const jsonTools = document.getElementById(fieldName + '_tools_json');
+  
+  [textTools, htmlTools, jsonTools].forEach(tool => {
+    if (tool) {
+      tool.style.opacity = '0';
+      setTimeout(() => tool.classList.add('hidden'), 150);
+    }
+  });
   
   // Update active mode
   modeInput.value = mode;
   
-  if (mode === 'text') {
-    textBtn.className = 'px-3 py-1 text-xs font-medium rounded transition-colors bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300';
-    document.getElementById(fieldName + '_tools_text').classList.remove('hidden');
-    textarea.className = 'block w-full px-3 py-3 text-base border-0 focus:ring-0 resize-none dark:bg-gray-700 dark:text-white';
-    textarea.placeholder = 'Enter your text here...';
-  } else if (mode === 'html') {
-    htmlBtn.className = 'px-3 py-1 text-xs font-medium rounded transition-colors bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300';
-    document.getElementById(fieldName + '_tools_html').classList.remove('hidden');
-    textarea.className = 'block w-full px-3 py-3 text-base border-0 focus:ring-0 resize-none font-mono dark:bg-gray-700 dark:text-white';
-    textarea.placeholder = '<html>\n  <body>\n    <!-- Your HTML here -->\n  </body>\n</html>';
-  } else if (mode === 'json') {
-    jsonBtn.className = 'px-3 py-1 text-xs font-medium rounded transition-colors bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300';
-    document.getElementById(fieldName + '_tools_json').classList.remove('hidden');
-    textarea.className = 'block w-full px-3 py-3 text-base border-0 focus:ring-0 resize-none font-mono dark:bg-gray-700 dark:text-white';
-    textarea.placeholder = '{\n  "key": "value",\n  "array": [1, 2, 3],\n  "nested": {\n    "property": true\n  }\n}';
-  }
-  
-  textarea.focus();
+  setTimeout(() => {
+    if (mode === 'text') {
+      if (textBtn) textBtn.className = 'px-3 py-1 text-xs font-medium rounded-md transition-all duration-200 bg-blue-500 text-white shadow-sm';
+      if (textTools) {
+        textTools.classList.remove('hidden');
+        textTools.style.opacity = '1';
+      }
+      textarea.className = 'block w-full px-4 py-3 text-base border-0 focus:ring-0 resize-y dark:bg-gray-700 dark:text-white placeholder-gray-400 dark:placeholder-gray-500';
+      textarea.placeholder = 'Start typing your content here...';
+    } else if (mode === 'html') {
+      if (htmlBtn) htmlBtn.className = 'px-3 py-1 text-xs font-medium rounded-md transition-all duration-200 bg-blue-500 text-white shadow-sm';
+      if (htmlTools) {
+        htmlTools.classList.remove('hidden');
+        htmlTools.style.opacity = '1';
+      }
+      textarea.className = 'block w-full px-4 py-3 text-base border-0 focus:ring-0 resize-y font-mono dark:bg-gray-700 dark:text-white placeholder-gray-400 dark:placeholder-gray-500';
+      textarea.placeholder = '<html>\n  <head>\n    <title>Page Title</title>\n  </head>\n  <body>\n    <!-- Your content here -->\n  </body>\n</html>';
+    } else if (mode === 'json') {
+      if (jsonBtn) jsonBtn.className = 'px-3 py-1 text-xs font-medium rounded-md transition-all duration-200 bg-blue-500 text-white shadow-sm';
+      if (jsonTools) {
+        jsonTools.classList.remove('hidden');
+        jsonTools.style.opacity = '1';
+      }
+      textarea.className = 'block w-full px-4 py-3 text-base border-0 focus:ring-0 resize-y font-mono dark:bg-gray-700 dark:text-white placeholder-gray-400 dark:placeholder-gray-500';
+      textarea.placeholder = '{\n  "key": "value",\n  "array": [1, 2, 3],\n  "object": {\n    "nested": true\n  }\n}';
+    }
+    
+    // Update character/line counts
+    updateCounts(fieldName);
+    textarea.focus();
+  }, 150);
 }
 
-// Text editor functions
+// Enhanced Text Formatting
 function formatText(fieldName, format) {
   const textarea = document.getElementById(fieldName);
+  if (!textarea) return;
+  
   const start = textarea.selectionStart;
   const end = textarea.selectionEnd;
   const selectedText = textarea.value.substring(start, end);
   
   let formattedText;
   if (format === 'bold') {
-    formattedText = '**' + selectedText + '**';
+    formattedText = selectedText ? `**${selectedText}**` : '**bold text**';
   } else if (format === 'italic') {
-    formattedText = '*' + selectedText + '*';
+    formattedText = selectedText ? `*${selectedText}*` : '*italic text*';
   }
   
-  textarea.value = textarea.value.substring(0, start) + formattedText + textarea.value.substring(end);
-  textarea.focus();
-  textarea.setSelectionRange(start + formattedText.length, start + formattedText.length);
+  insertAtCursor(textarea, formattedText, start, end);
+  updateCounts(fieldName);
 }
 
-// HTML editor functions
-function insertHtml(fieldName, htmlTag) {
+function insertText(fieldName, type) {
   const textarea = document.getElementById(fieldName);
+  if (!textarea) return;
+  
   const start = textarea.selectionStart;
   const end = textarea.selectionEnd;
   const selectedText = textarea.value.substring(start, end);
   
   let insertText;
-  if (htmlTag === '<p></p>') {
-    insertText = '<p>' + selectedText + '</p>';
-  } else if (htmlTag === '<div></div>') {
-    insertText = '<div>' + selectedText + '</div>';
-  } else if (htmlTag === '<span></span>') {
-    insertText = '<span>' + selectedText + '</span>';
-  } else if (htmlTag === '<a href=""></a>') {
-    insertText = '<a href="">' + selectedText + '</a>';
+  if (type === 'heading') {
+    insertText = selectedText ? `# ${selectedText}` : '# Heading';
+  } else if (type === 'list') {
+    insertText = selectedText ? `- ${selectedText}` : '- List item\n- Another item';
   }
   
-  textarea.value = textarea.value.substring(0, start) + insertText + textarea.value.substring(end);
-  textarea.focus();
-  const newPosition = start + insertText.length;
-  textarea.setSelectionRange(newPosition, newPosition);
+  insertAtCursor(textarea, insertText, start, end);
+  updateCounts(fieldName);
 }
 
-// JSON editor functions
+// Enhanced HTML Functions
+function insertHtml(fieldName, type, tag = '') {
+  const textarea = document.getElementById(fieldName);
+  if (!textarea) return;
+  
+  const start = textarea.selectionStart;
+  const end = textarea.selectionEnd;
+  const selectedText = textarea.value.substring(start, end);
+  
+  let insertText;
+  if (type === 'tag') {
+    insertText = selectedText ? `<${tag}>${selectedText}</${tag}>` : `<${tag}></${tag}>`;
+  } else if (type === 'link') {
+    insertText = selectedText ? `<a href="">${selectedText}</a>` : '<a href="">Link Text</a>';
+  }
+  
+  insertAtCursor(textarea, insertText, start, end);
+  updateCounts(fieldName);
+}
+
+function formatHtml(fieldName) {
+  const textarea = document.getElementById(fieldName);
+  const statusDiv = document.getElementById(fieldName + '_html_status');
+  
+  if (!textarea) return;
+  
+  try {
+    // Simple HTML formatting (basic indentation)
+    let html = textarea.value;
+    html = html.replace(/></g, '>\n<');
+    const lines = html.split('\n');
+    let indentLevel = 0;
+    const formatted = lines.map(line => {
+      const trimmed = line.trim();
+      if (!trimmed) return '';
+      
+      if (trimmed.startsWith('</')) {
+        indentLevel = Math.max(0, indentLevel - 1);
+      }
+      
+      const indented = '  '.repeat(indentLevel) + trimmed;
+      
+      if (trimmed.startsWith('<') && !trimmed.startsWith('</') && !trimmed.endsWith('/>')) {
+        indentLevel++;
+      }
+      
+      return indented;
+    }).join('\n');
+    
+    textarea.value = formatted;
+    showStatus(statusDiv, 'HTML formatted successfully', 'success');
+  } catch (error) {
+    showStatus(statusDiv, 'HTML formatting failed', 'error');
+  }
+  
+  updateCounts(fieldName);
+}
+
+// Enhanced JSON Functions
 function formatJson(fieldName) {
   const textarea = document.getElementById(fieldName);
-  const statusDiv = document.getElementById(fieldName + '_status');
+  const statusDiv = document.getElementById(fieldName + '_json_status');
+  
+  if (!textarea) return;
   
   try {
     const parsed = JSON.parse(textarea.value);
     textarea.value = JSON.stringify(parsed, null, 2);
-    statusDiv.className = 'px-3 py-2 text-sm text-green-600 dark:text-green-400';
-    statusDiv.textContent = '✓ JSON formatted successfully';
-    statusDiv.classList.remove('hidden');
-    setTimeout(function() { statusDiv.classList.add('hidden'); }, 3000);
+    showStatus(statusDiv, 'JSON formatted successfully', 'success');
   } catch (error) {
-    statusDiv.className = 'px-3 py-2 text-sm text-red-600 dark:text-red-400';
-    statusDiv.textContent = '✗ Invalid JSON: ' + error.message;
-    statusDiv.classList.remove('hidden');
+    showStatus(statusDiv, 'Invalid JSON: ' + error.message, 'error');
   }
+  
+  updateCounts(fieldName);
 }
 
 function validateJson(fieldName) {
   const textarea = document.getElementById(fieldName);
-  const statusDiv = document.getElementById(fieldName + '_status');
+  const statusDiv = document.getElementById(fieldName + '_json_status');
+  
+  if (!textarea) return;
   
   try {
     JSON.parse(textarea.value);
-    statusDiv.className = 'px-3 py-2 text-sm text-green-600 dark:text-green-400';
-    statusDiv.textContent = '✓ Valid JSON';
-    statusDiv.classList.remove('hidden');
-    setTimeout(function() { statusDiv.classList.add('hidden'); }, 3000);
+    showStatus(statusDiv, 'Valid JSON ✓', 'success');
   } catch (error) {
-    statusDiv.className = 'px-3 py-2 text-sm text-red-600 dark:text-red-400';
-    statusDiv.textContent = '✗ Invalid JSON: ' + error.message;
-    statusDiv.classList.remove('hidden');
+    showStatus(statusDiv, 'Invalid JSON: ' + error.message, 'error');
   }
+}
+
+function minifyJson(fieldName) {
+  const textarea = document.getElementById(fieldName);
+  const statusDiv = document.getElementById(fieldName + '_json_status');
+  
+  if (!textarea) return;
+  
+  try {
+    const parsed = JSON.parse(textarea.value);
+    textarea.value = JSON.stringify(parsed);
+    showStatus(statusDiv, 'JSON minified', 'success');
+  } catch (error) {
+    showStatus(statusDiv, 'Invalid JSON: ' + error.message, 'error');
+  }
+  
+  updateCounts(fieldName);
 }
 
 function insertJson(fieldName, type) {
   const textarea = document.getElementById(fieldName);
+  if (!textarea) return;
+  
   const start = textarea.selectionStart;
   const end = textarea.selectionEnd;
   const selectedText = textarea.value.substring(start, end);
   
   let insertText;
   if (type === 'object') {
-    insertText = selectedText ? '{\n  "' + selectedText + '": "value"\n}' : '{\n  "key": "value"\n}';
+    insertText = selectedText ? `{\n  "${selectedText}": "value"\n}` : '{\n  "key": "value"\n}';
   } else if (type === 'array') {
-    insertText = selectedText ? '[\n  "' + selectedText + '"\n]' : '[\n  "item1",\n  "item2"\n]';
+    insertText = selectedText ? `[\n  "${selectedText}"\n]` : '[\n  "item1",\n  "item2"\n]';
   }
   
-  textarea.value = textarea.value.substring(0, start) + insertText + textarea.value.substring(end);
+  insertAtCursor(textarea, insertText, start, end);
+  updateCounts(fieldName);
+}
+
+// Utility Functions
+function insertAtCursor(textarea, text, start, end) {
+  textarea.value = textarea.value.substring(0, start) + text + textarea.value.substring(end);
+  const newPosition = start + text.length;
   textarea.focus();
-  const newPosition = start + insertText.length;
   textarea.setSelectionRange(newPosition, newPosition);
 }
+
+function showStatus(statusDiv, message, type) {
+  if (!statusDiv) return;
+  
+  statusDiv.textContent = message;
+  statusDiv.className = `absolute bottom-3 right-3 text-xs px-2 py-1 rounded ${
+    type === 'success' 
+      ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' 
+      : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
+  }`;
+  statusDiv.classList.remove('hidden');
+  
+  setTimeout(() => {
+    statusDiv.style.opacity = '0';
+    setTimeout(() => statusDiv.classList.add('hidden'), 300);
+  }, 3000);
+}
+
+function updateCounts(fieldName) {
+  const textarea = document.getElementById(fieldName);
+  const charCount = document.getElementById(fieldName + '_char_count');
+  const lineCount = document.getElementById(fieldName + '_line_count');
+  const textCount = document.getElementById(fieldName + '_count');
+  
+  if (textarea) {
+    const text = textarea.value;
+    const chars = text.length;
+    const lines = text.split('\n').length;
+    
+    if (charCount) charCount.textContent = chars;
+    if (lineCount) lineCount.textContent = lines;
+    if (textCount) textCount.textContent = chars;
+  }
+}
+
+// Initialize event listeners
+document.addEventListener('DOMContentLoaded', function() {
+  // Add event listeners for character counting
+  document.querySelectorAll('textarea').forEach(textarea => {
+    const fieldName = textarea.id;
+    
+    textarea.addEventListener('input', () => updateCounts(fieldName));
+    textarea.addEventListener('keyup', () => updateCounts(fieldName));
+    
+    // Initial count
+    updateCounts(fieldName);
+  });
+  
+  // Add keyboard shortcuts
+  document.querySelectorAll('textarea').forEach(textarea => {
+    textarea.addEventListener('keydown', function(e) {
+      if (e.ctrlKey || e.metaKey) {
+        const fieldName = this.id;
+        switch(e.key) {
+          case 'b':
+            e.preventDefault();
+            formatText(fieldName, 'bold');
+            break;
+          case 'i':
+            e.preventDefault();
+            formatText(fieldName, 'italic');
+            break;
+        }
+      }
+    });
+  });
+});
 </script>
+{% endblock content %}

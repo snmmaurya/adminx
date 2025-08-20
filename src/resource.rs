@@ -1,4 +1,4 @@
-// crates/adminx/src/resource.rs - Fixed version with default implementations
+// crates/adminx/src/resource.rs - Fixed menu generation
 use actix_web::{HttpRequest, HttpResponse, ResponseError};
 use async_trait::async_trait;
 use futures::future::BoxFuture;
@@ -90,10 +90,9 @@ pub trait AdmixResource: Send + Sync {
     }
 
     // ===========================
-    // DEFAULT CRUD IMPLEMENTATIONS
+    // DEFAULT CRUD IMPLEMENTATIONS (keeping existing implementations)
     // ===========================
     
-    /// Default LIST implementation - override if you need custom logic
     fn list(&self, _req: &HttpRequest, query: String) -> BoxFuture<'static, HttpResponse> {
         let collection = self.get_collection();
         let resource_name = self.resource_name().to_string();
@@ -103,7 +102,6 @@ pub trait AdmixResource: Send + Sync {
             
             let opts = parse_query(&query);
             
-            // Get total count for pagination
             let total = match collection.count_documents(opts.filter.clone(), None).await {
                 Ok(count) => count,
                 Err(e) => {
@@ -112,7 +110,6 @@ pub trait AdmixResource: Send + Sync {
                 }
             };
             
-            // Build find options with sorting and pagination
             let mut find_options = mongodb::options::FindOptions::default();
             find_options.skip = Some(opts.skip);
             find_options.limit = Some(opts.limit as i64);
@@ -145,7 +142,6 @@ pub trait AdmixResource: Send + Sync {
         })
     }
 
-    /// Default GET implementation - override if you need custom logic
     fn get(&self, _req: &HttpRequest, id: String) -> BoxFuture<'static, HttpResponse> {
         let collection = self.get_collection();
         let resource_name = self.resource_name().to_string();
@@ -178,7 +174,6 @@ pub trait AdmixResource: Send + Sync {
         })
     }
 
-    /// Default CREATE implementation - override if you need custom logic
     fn create(&self, _req: &HttpRequest, payload: Value) -> BoxFuture<'static, HttpResponse> {
         let collection = self.get_collection();
         let permitted = self.permit_keys().into_iter().collect::<std::collections::HashSet<_>>();
@@ -187,7 +182,6 @@ pub trait AdmixResource: Send + Sync {
         Box::pin(async move {
             tracing::info!("Default create implementation for resource: {} with payload: {:?}", resource_name, payload);
             
-            // Filter payload to only include permitted parameters
             let mut clean_map = serde_json::Map::new();
             if let Value::Object(map) = payload {
                 for (key, value) in map {
@@ -197,14 +191,12 @@ pub trait AdmixResource: Send + Sync {
                 }
             }
 
-            // Add timestamps
             let now = mongodb::bson::DateTime::now();
             clean_map.insert("created_at".to_string(), json!(now));
             clean_map.insert("updated_at".to_string(), json!(now));
 
             tracing::debug!("Cleaned payload for {}: {:?}", resource_name, clean_map);
 
-            // Convert to BSON document
             match mongodb::bson::to_document(&Value::Object(clean_map)) {
                 Ok(document) => {
                     match collection.insert_one(document, None).await {
@@ -230,7 +222,6 @@ pub trait AdmixResource: Send + Sync {
         })
     }
 
-    /// Default UPDATE implementation - override if you need custom logic
     fn update(&self, _req: &HttpRequest, id: String, payload: Value) -> BoxFuture<'static, HttpResponse> {
         let collection = self.get_collection();
         let permitted = self.permit_keys().into_iter().collect::<std::collections::HashSet<_>>();
@@ -242,7 +233,6 @@ pub trait AdmixResource: Send + Sync {
             
             match ObjectId::parse_str(&id) {
                 Ok(oid) => {
-                    // Filter payload to only include permitted parameters
                     let mut clean_map = serde_json::Map::new();
                     if let Value::Object(map) = payload {
                         for (key, value) in map {
@@ -252,7 +242,6 @@ pub trait AdmixResource: Send + Sync {
                         }
                     }
 
-                    // Add updated timestamp
                     clean_map.insert("updated_at".to_string(), json!(mongodb::bson::DateTime::now()));
 
                     let bson_payload: Document = match mongodb::bson::to_document(&Value::Object(clean_map)) {
@@ -293,7 +282,6 @@ pub trait AdmixResource: Send + Sync {
         })
     }
 
-    /// Default DELETE implementation - override if you need custom logic
     fn delete(&self, _req: &HttpRequest, id: String) -> BoxFuture<'static, HttpResponse> {
         let collection = self.get_collection();
         let resource_name = self.resource_name().to_string();
@@ -332,33 +320,19 @@ pub trait AdmixResource: Send + Sync {
     }
 
     // ===========================
-    // MENU GENERATION (Optional Override)
+    // FIXED MENU GENERATION - Only return resource info, not grouped menu
     // ===========================
     fn generate_menu(&self) -> Option<MenuItem> {
-        // Build a resource node with NO action children.
-        let resource_node = MenuItem {
+        // Only return the resource node itself, without wrapping in parent group
+        // The grouping will be handled at the registry level in get_registered_menus()
+        Some(MenuItem {
             title: self.menu().to_string(),
             path: self.base_path().to_string(),
-            icon: Some("users".to_string()),
+            icon: Some("users".to_string()), // You can customize this per resource
             order: Some(10),
-            children: None, // <-- no List/Create/View/Edit/Delete
-        };
-
-        // If a parent menu is set, wrap the resource under it.
-        if let Some(group_title) = self.menu_group() {
-            return Some(MenuItem {
-                title: group_title.to_string(),
-                path: String::new(),            // non-clickable parent
-                icon: None,
-                order: Some(10),
-                children: Some(vec![resource_node]),
-            });
-        }
-
-        // Otherwise, just the resource node at top level.
-        Some(resource_node)
+            children: None, // No action children, just the resource itself
+        })
     }
-
 
     fn build_adminx_menus(&self) -> Option<MenuItem> {
         self.generate_menu()

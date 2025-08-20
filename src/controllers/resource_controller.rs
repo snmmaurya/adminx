@@ -1,4 +1,4 @@
-// crates/adminx/src/controllers/resource_controller.rs - UPDATED VERSION
+// crates/adminx/src/controllers/resource_controller.rs - COMPLETE FIXED VERSION
 use actix_web::{web, HttpRequest, HttpResponse, Scope};
 use serde_json::Value;
 use std::sync::Arc;
@@ -15,6 +15,7 @@ use crate::helpers::resource_helper::{
     convert_form_data_to_json,
     handle_create_response,
     handle_update_response,
+    handle_delete_response,
     get_default_list_structure,
     get_default_form_structure,
     get_default_view_structure,
@@ -40,81 +41,7 @@ pub fn register_admix_resource_routes(resource: Box<dyn AdmixResource>) -> Scope
     let ui_resource_name = resource_arc.resource_name().to_string();
     let ui_base_path = resource_arc.base_path().to_string();
 
-    // GET /list - List view page
-    // scope = scope.route("/list", web::get().to({
-    //     let resource = Arc::clone(&resource_arc);
-    //     let resource_name = ui_resource_name.clone();
-    //     move |req: HttpRequest, session: Session, config: web::Data<AdminxConfig>| {
-    //         let query_string = req.query_string().to_string();
-    //         let resource = Arc::clone(&resource);
-    //         let resource_name = resource_name.clone();
-    //         async move {
-    //             match check_authentication(&session, &config, &resource_name, "list").await {
-    //                 Ok(claims) => {
-    //                     info!("✅ List UI accessed by: {} for resource: {}", claims.email, resource_name);
-                        
-    //                     let mut ctx = create_base_template_context(&resource_name, &resource.base_path(), &claims);
-                        
-    //                     // Check for success/error messages from query parameters
-    //                     let query_params: std::collections::HashMap<String, String> = 
-    //                         serde_urlencoded::from_str(&query_string).unwrap_or_default();
-                        
-    //                     if query_params.contains_key("success") {
-    //                         match query_params.get("success").unwrap().as_str() {
-    //                             "created" => ctx.insert("toast_message", &"Successfully created new item!"),
-    //                             "updated" => ctx.insert("toast_message", &"Successfully updated item!"),
-    //                             "deleted" => ctx.insert("toast_message", &"Successfully deleted item!"),
-    //                             _ => {}
-    //                         }
-    //                         ctx.insert("toast_type", &"success");
-    //                     }
-                        
-    //                     if query_params.contains_key("error") {
-    //                         match query_params.get("error").unwrap().as_str() {
-    //                             "create_failed" => ctx.insert("toast_message", &"Failed to create item. Please try again."),
-    //                             "update_failed" => ctx.insert("toast_message", &"Failed to update item. Please try again."),
-    //                             "delete_failed" => ctx.insert("toast_message", &"Failed to delete item. Please try again."),
-    //                             _ => {}
-    //                         }
-    //                         ctx.insert("toast_type", &"error");
-    //                     }
-                        
-    //                     // Fetch actual data from the resource
-    //                     match fetch_list_data(&resource, &req, query_string).await {
-    //                         Ok((headers, rows, pagination)) => {
-    //                             ctx.insert("headers", &headers);
-    //                             ctx.insert("rows", &rows);
-    //                             ctx.insert("pagination", &pagination);
-                                
-    //                             info!("📊 Loaded {} items for {} list view", rows.len(), resource_name);
-    //                         }
-    //                         Err(e) => {
-    //                             error!("❌ Failed to fetch list data for {}: {}", resource_name, e);
-    //                             // Provide empty data as fallback
-    //                             let headers = vec!["id", "name", "email", "created_at"];
-    //                             let rows: Vec<serde_json::Map<String, serde_json::Value>> = vec![];
-    //                             let pagination = serde_json::json!({
-    //                                 "current": 1,
-    //                                 "total": 1,
-    //                                 "prev": null,
-    //                                 "next": null
-    //                             });
-                                
-    //                             ctx.insert("headers", &headers);
-    //                             ctx.insert("rows", &rows);
-    //                             ctx.insert("pagination", &pagination);
-    //                             ctx.insert("toast_message", &"Failed to load data. Please refresh the page.");
-    //                             ctx.insert("toast_type", &"error");
-    //                         }
-    //                     }
-
-    //                     render_template("list.html.tera", ctx).await
-    //                 }
-    //                 Err(response) => response
-    //             }
-    //         }
-    //     }
-    // }));
+    // GET /list - List view with download support
     scope = scope.route("/list", web::get().to({
         let resource = Arc::clone(&resource_arc);
         let resource_name = ui_resource_name.clone();
@@ -125,13 +52,57 @@ pub fn register_admix_resource_routes(resource: Box<dyn AdmixResource>) -> Scope
             async move {
                 match check_authentication(&session, &config, &resource_name, "list").await {
                     Ok(claims) => {
+                        // Parse query parameters directly from the request
+                        let query_params: std::collections::HashMap<String, String> = 
+                            serde_urlencoded::from_str(&query_string).unwrap_or_default();
+                        
+                        // CHECK FOR DOWNLOAD REQUESTS FIRST
+                        if let Some(download_format) = query_params.get("download") {
+                            info!("📥 Download request for {} in format: {} by user: {}", 
+                                  resource_name, download_format, claims.email);
+                            
+                            match download_format.as_str() {
+                                "json" => {
+                                    match crate::helpers::downloads::json_download::export_data_as_json(&resource, &req, query_string).await {
+                                        Ok(response) => {
+                                            info!("✅ JSON export successful for {} by {}", resource_name, claims.email);
+                                            return response;
+                                        }
+                                        Err(e) => {
+                                            error!("❌ Failed to export JSON for {}: {}", resource_name, e);
+                                            return HttpResponse::InternalServerError()
+                                                .content_type("text/plain")
+                                                .body(format!("Failed to export JSON data: {}", e));
+                                        }
+                                    }
+                                }
+                                "csv" => {
+                                    match crate::helpers::downloads::csv_download::export_data_as_csv(&resource, &req, query_string).await {
+                                        Ok(response) => {
+                                            info!("✅ CSV export successful for {} by {}", resource_name, claims.email);
+                                            return response;
+                                        }
+                                        Err(e) => {
+                                            error!("❌ Failed to export CSV for {}: {}", resource_name, e);
+                                            return HttpResponse::InternalServerError()
+                                                .content_type("text/plain")
+                                                .body(format!("Failed to export CSV data: {}", e));
+                                        }
+                                    }
+                                }
+                                _ => {
+                                    warn!("⚠️ Unsupported download format requested: {}", download_format);
+                                    return HttpResponse::BadRequest()
+                                        .content_type("text/plain")
+                                        .body(format!("Unsupported download format: {}. Supported formats: json, csv", download_format));
+                                }
+                            }
+                        }
+                        
+                        // REGULAR LIST VIEW (No download request)
                         info!("✅ List UI accessed by: {} for resource: {}", claims.email, resource_name);
                         
                         let mut ctx = create_base_template_context(&resource_name, &resource.base_path(), &claims);
-                        
-                        // Parse query parameters
-                        let query_params: std::collections::HashMap<String, String> = 
-                            serde_urlencoded::from_str(&query_string).unwrap_or_default();
                         
                         // Check for success/error messages from query parameters
                         if query_params.contains_key("success") {
@@ -377,27 +348,50 @@ pub fn register_admix_resource_routes(resource: Box<dyn AdmixResource>) -> Scope
         }
     }));
 
+    // POST /{id}/delete - Handle HTML form submission for deletes
+    scope = scope.route("/{id}/delete", web::post().to({
+        let resource = Arc::clone(&resource_arc);
+        let resource_name = ui_resource_name.clone();
+        move |req: HttpRequest, id: web::Path<String>, session: Session, config: web::Data<AdminxConfig>| {
+            let resource = Arc::clone(&resource);
+            let resource_name = resource_name.clone();
+            async move {
+                match check_authentication(&session, &config, &resource_name, "delete").await {
+                    Ok(claims) => {
+                        let item_id = id.into_inner();
+                        info!("✅ Delete form submitted by: {} for resource: {} item: {}", claims.email, resource_name, item_id);
+                        
+                        let delete_response = resource.delete(&req, item_id.clone()).await;
+                        handle_delete_response(delete_response, &resource.base_path(), &resource_name)
+                    }
+                    Err(response) => response
+                }
+            }
+        }
+    }));
+
     // ========================
-    // API Routes (JSON endpoints) - AFTER UI ROUTES!
+    // API Routes (JSON endpoints) - MOVED TO /api PREFIX TO AVOID CONFLICTS
     // ========================
     
-    // GET / - List all items (JSON API)
+    // GET /api - List all items (JSON API)
     let list_resource = resource.clone_box();
     scope = scope.route(
-        "",
-        web::get().to(move |req: HttpRequest, query: web::Query<String>| {
+        "/api",
+        web::get().to(move |req: HttpRequest| {
             let resource = list_resource.clone_box();
             async move {
                 info!("📡 List API endpoint called for resource: {}", resource.resource_name());
-                resource.list(&req, query.into_inner()).await
+                let query_string = req.query_string().to_string();
+                resource.list(&req, query_string).await
             }
         }),
     );
 
-    // POST / - Create new item (JSON API)
+    // POST /api - Create new item (JSON API)
     let create_resource = resource.clone_box();
     scope = scope.route(
-        "",
+        "/api",
         web::post().to(move |req: HttpRequest, body: web::Json<Value>| {
             let resource = create_resource.clone_box();
             async move {
@@ -407,10 +401,10 @@ pub fn register_admix_resource_routes(resource: Box<dyn AdmixResource>) -> Scope
         }),
     );
 
-    // GET /{id} - Get single item (JSON API) - AFTER specific UI routes
+    // GET /api/{id} - Get single item (JSON API)
     let get_resource = resource.clone_box();
     scope = scope.route(
-        "/{id}",
+        "/api/{id}",
         web::get().to(move |req: HttpRequest, path: web::Path<String>| {
             let resource = get_resource.clone_box();
             async move {
@@ -421,10 +415,10 @@ pub fn register_admix_resource_routes(resource: Box<dyn AdmixResource>) -> Scope
         }),
     );
 
-    // PUT /{id} - Update item (JSON API)
+    // PUT /api/{id} - Update item (JSON API)
     let update_resource = resource.clone_box();
     scope = scope.route(
-        "/{id}",
+        "/api/{id}",
         web::put().to(move |req: HttpRequest, path: web::Path<String>, body: web::Json<Value>| {
             let resource = update_resource.clone_box();
             async move {
@@ -435,10 +429,10 @@ pub fn register_admix_resource_routes(resource: Box<dyn AdmixResource>) -> Scope
         }),
     );
 
-    // DELETE /{id} - Delete item (JSON API)
+    // DELETE /api/{id} - Delete item (JSON API)
     let delete_resource = resource.clone_box();
     scope = scope.route(
-        "/{id}",
+        "/api/{id}",
         web::delete().to(move |req: HttpRequest, path: web::Path<String>| {
             let resource = delete_resource.clone_box();
             async move {

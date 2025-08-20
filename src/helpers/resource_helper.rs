@@ -1,4 +1,4 @@
-// crates/adminx/src/helpers/resource_helper.rs - Working Version
+// crates/adminx/src/helpers/resource_helper.rs - Complete Fixed Version
 use actix_web::{web, HttpRequest, HttpResponse, Scope};
 use serde_json::Value;
 use std::sync::Arc;
@@ -95,16 +95,90 @@ pub fn create_base_template_context(
     ctx
 }
 
-/// Handle form data conversion from HTML form to JSON
+
+pub fn handle_delete_response(
+    response: HttpResponse,
+    base_path: &str,
+    resource_name: &str,
+) -> HttpResponse {
+    if response.status().is_success() {
+        info!("✅ Resource '{}' item deleted successfully, redirecting to list", resource_name);
+        let location = format!("/adminx/{}/list?success=deleted", base_path);
+        HttpResponse::Found()
+            .append_header(("Location", location))
+            .finish()
+    } else {
+        error!("❌ Resource '{}' item deletion failed with status: {}", resource_name, response.status());
+        let location = format!("/adminx/{}/list?error=delete_failed", base_path);
+        HttpResponse::Found()
+            .append_header(("Location", location))
+            .finish()
+    }
+}
+
+/// Handle form data conversion from HTML form to JSON - Enhanced version
 pub fn convert_form_data_to_json(
     form_data: std::collections::HashMap<String, String>
 ) -> Value {
     let mut json_data = serde_json::Map::new();
+    
     for (key, value) in form_data {
-        if !value.is_empty() { // Skip empty fields
-            json_data.insert(key, serde_json::Value::String(value));
+        // Skip editor mode fields (they're just for UI state)
+        if key.ends_with("_mode") {
+            continue;
+        }
+        
+        if !value.is_empty() {
+            // Handle boolean fields
+            if key == "deleted" || key == "active" || key == "enabled" || key.ends_with("_flag") {
+                match value.as_str() {
+                    "true" | "1" | "on" => {
+                        json_data.insert(key, serde_json::Value::Bool(true));
+                    }
+                    "false" | "0" | "off" => {
+                        json_data.insert(key, serde_json::Value::Bool(false));
+                    }
+                    _ => {
+                        // If it's not a clear boolean, treat as string
+                        json_data.insert(key, serde_json::Value::String(value));
+                    }
+                }
+            }
+            // Handle numeric fields
+            else if key.ends_with("_id") || key.ends_with("_count") || key.ends_with("_number") {
+                if let Ok(num) = value.parse::<i64>() {
+                    json_data.insert(key, serde_json::Value::Number(serde_json::Number::from(num)));
+                } else if let Ok(num) = value.parse::<f64>() {
+                    if let Some(num_val) = serde_json::Number::from_f64(num) {
+                        json_data.insert(key, serde_json::Value::Number(num_val));
+                    } else {
+                        json_data.insert(key, serde_json::Value::String(value));
+                    }
+                } else {
+                    json_data.insert(key, serde_json::Value::String(value));
+                }
+            }
+            // Handle JSON fields (try to parse as JSON first)
+            else if key == "data" || key.ends_with("_json") || key.ends_with("_config") {
+                // Try to parse as JSON first to validate, but store as string
+                match serde_json::from_str::<serde_json::Value>(&value) {
+                    Ok(_) => {
+                        // If it parsed successfully, store as string (most APIs expect JSON fields as strings)
+                        json_data.insert(key, serde_json::Value::String(value));
+                    }
+                    Err(_) => {
+                        // If it's not valid JSON, store as-is
+                        json_data.insert(key, serde_json::Value::String(value));
+                    }
+                }
+            }
+            // Default: treat as string
+            else {
+                json_data.insert(key, serde_json::Value::String(value));
+            }
         }
     }
+    
     serde_json::Value::Object(json_data)
 }
 
@@ -154,12 +228,24 @@ pub fn handle_update_response(
 /// Get default list structure for resources that don't define one
 pub fn get_default_list_structure() -> Value {
     serde_json::json!({
-        "columns": [],
+        "columns": [
+            {
+                "field": "id",
+                "label": "ID",
+                "sortable": false
+            },
+            {
+                "field": "created_at",
+                "label": "Created At",
+                "type": "datetime",
+                "sortable": true
+            }
+        ],
         "actions": ["view", "edit", "delete"]
     })
 }
 
-
+/// Fetch list data - Generic version that works with any resource
 pub async fn fetch_list_data(
     resource: &Arc<Box<dyn AdmixResource>>,
     req: &HttpRequest,
@@ -188,18 +274,119 @@ pub async fn fetch_list_data(
     
     // Build filters based on query parameters
     for (key, value) in &query_params {
-        if !value.is_empty() && permitted_fields.contains(key.as_str()) {
+        if !value.is_empty() && (permitted_fields.contains(key.as_str()) || key == "search") {
             match key.as_str() {
-                "name" | "email" | "username" => {
-                    // Text search with regex (case-insensitive)
-                    filter_doc.insert(key, mongodb::bson::doc! {
-                        "$regex": value,
-                        "$options": "i"
-                    });
+                // Text fields that should use regex search
+                "name" | "email" | "username" | "key" | "title" | "description" | "search" => {
+                    if key == "search" {
+                        // Global search across multiple fields
+                        let search_fields = vec!["name", "email", "username", "key", "title", "description"];
+                        let mut search_conditions = Vec::new();
+                        
+                        for field in search_fields {
+                            if permitted_fields.contains(field) {
+                                search_conditions.push(mongodb::bson::doc! {
+                                    field: {
+                                        "$regex": value,
+                                        "$options": "i"
+                                    }
+                                });
+                            }
+                        }
+                        
+                        if !search_conditions.is_empty() {
+                            filter_doc.insert("$or", search_conditions);
+                        }
+                    } else {
+                        filter_doc.insert(key, mongodb::bson::doc! {
+                            "$regex": value,
+                            "$options": "i"
+                        });
+                    }
                 }
-                "status" => {
-                    // Exact match for status
-                    filter_doc.insert(key, value);
+                // Exact match fields
+                "status" | "data_type" | "deleted" | "active" | "enabled" => {
+                    // Handle boolean fields properly
+                    if value == "true" || value == "false" {
+                        let bool_val = value == "true";
+                        filter_doc.insert(key, bool_val);
+                    } else {
+                        filter_doc.insert(key, value);
+                    }
+                }
+                // Date range filters
+                key if key.ends_with("_from") => {
+                    let base_field = key.trim_end_matches("_from");
+                    if permitted_fields.contains(base_field) {
+                        if let Ok(date) = chrono::DateTime::parse_from_rfc3339(&format!("{}T00:00:00Z", value)) {
+                            let existing_filter = filter_doc.get_mut(base_field);
+                            match existing_filter {
+                                Some(mongodb::bson::Bson::Document(ref mut doc)) => {
+                                    doc.insert("$gte", mongodb::bson::DateTime::from_chrono(date.with_timezone(&chrono::Utc)));
+                                }
+                                _ => {
+                                    filter_doc.insert(base_field, mongodb::bson::doc! {
+                                        "$gte": mongodb::bson::DateTime::from_chrono(date.with_timezone(&chrono::Utc))
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+                key if key.ends_with("_to") => {
+                    let base_field = key.trim_end_matches("_to");
+                    if permitted_fields.contains(base_field) {
+                        if let Ok(date) = chrono::DateTime::parse_from_rfc3339(&format!("{}T23:59:59Z", value)) {
+                            let existing_filter = filter_doc.get_mut(base_field);
+                            match existing_filter {
+                                Some(mongodb::bson::Bson::Document(ref mut doc)) => {
+                                    doc.insert("$lte", mongodb::bson::DateTime::from_chrono(date.with_timezone(&chrono::Utc)));
+                                }
+                                _ => {
+                                    filter_doc.insert(base_field, mongodb::bson::doc! {
+                                        "$lte": mongodb::bson::DateTime::from_chrono(date.with_timezone(&chrono::Utc))
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+                // Number range filters
+                key if key.ends_with("_min") => {
+                    let base_field = key.trim_end_matches("_min");
+                    if permitted_fields.contains(base_field) {
+                        if let Ok(num) = value.parse::<f64>() {
+                            let existing_filter = filter_doc.get_mut(base_field);
+                            match existing_filter {
+                                Some(mongodb::bson::Bson::Document(ref mut doc)) => {
+                                    doc.insert("$gte", num);
+                                }
+                                _ => {
+                                    filter_doc.insert(base_field, mongodb::bson::doc! {
+                                        "$gte": num
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+                key if key.ends_with("_max") => {
+                    let base_field = key.trim_end_matches("_max");
+                    if permitted_fields.contains(base_field) {
+                        if let Ok(num) = value.parse::<f64>() {
+                            let existing_filter = filter_doc.get_mut(base_field);
+                            match existing_filter {
+                                Some(mongodb::bson::Bson::Document(ref mut doc)) => {
+                                    doc.insert("$lte", num);
+                                }
+                                _ => {
+                                    filter_doc.insert(base_field, mongodb::bson::doc! {
+                                        "$lte": num
+                                    });
+                                }
+                            }
+                        }
+                    }
                 }
                 _ => {
                     // Default: exact match for other fields
@@ -229,14 +416,30 @@ pub async fn fetch_list_data(
         documents.push(doc);
     }
     
-    // Convert MongoDB documents to the format expected by the template
-    let headers = vec![
-        "id".to_string(),
-        "name".to_string(), 
-        "email".to_string(),
-        "created_at".to_string()
-    ];
+    // Get column structure from resource's list_structure or use defaults
+    let list_structure = resource.list_structure().unwrap_or_else(|| get_default_list_structure());
+    let columns = list_structure.get("columns")
+        .and_then(|c| c.as_array())
+        .map(|cols| {
+            cols.iter()
+                .filter_map(|col| col.get("field").and_then(|f| f.as_str()))
+                .map(|s| s.to_string())
+                .collect::<Vec<String>>()
+        })
+        .unwrap_or_else(|| {
+            // Default columns based on permitted fields
+            let mut default_cols = vec!["id".to_string()];
+            let permitted = resource.permit_keys();
+            for field in permitted {
+                if field != "_id" && field != "created_at" && field != "updated_at" {
+                    default_cols.push(field.to_string());
+                }
+            }
+            default_cols.push("created_at".to_string());
+            default_cols
+        });
     
+    // Convert MongoDB documents to the format expected by the template
     let rows: Vec<serde_json::Map<String, Value>> = documents
         .into_iter()
         .map(|doc| {
@@ -247,31 +450,60 @@ pub async fn fetch_list_data(
                 row.insert("id".to_string(), Value::String(oid.to_hex()));
             }
             
-            // Extract other fields
-            if let Ok(name) = doc.get_str("name") {
-                row.insert("name".to_string(), Value::String(name.to_string()));
-            }
-            
-            if let Ok(email) = doc.get_str("email") {
-                row.insert("email".to_string(), Value::String(email.to_string()));
-            }
-            
-            // Handle status if it exists
-            if let Ok(status) = doc.get_str("status") {
-                row.insert("status".to_string(), Value::String(status.to_string()));
-            }
-            
-            // Handle created_at timestamp
-            if let Ok(created_at) = doc.get_datetime("created_at") {
-                let timestamp_ms = created_at.timestamp_millis();
-                if let Some(datetime) = chrono::DateTime::from_timestamp_millis(timestamp_ms) {
-                    row.insert("created_at".to_string(), 
-                             Value::String(datetime.format("%Y-%m-%d %H:%M:%S").to_string()));
-                } else {
-                    row.insert("created_at".to_string(), Value::String("N/A".to_string()));
+            // Extract fields based on permitted fields and columns
+            for field_name in &columns {
+                if field_name == "id" {
+                    continue; // Already handled above
                 }
-            } else {
-                row.insert("created_at".to_string(), Value::String("N/A".to_string()));
+                
+                // Try different data types for each field
+                if let Ok(string_val) = doc.get_str(field_name) {
+                    row.insert(field_name.clone(), Value::String(string_val.to_string()));
+                } else if let Ok(bool_val) = doc.get_bool(field_name) {
+                    row.insert(field_name.clone(), Value::String(bool_val.to_string()));
+                } else if let Ok(int_val) = doc.get_i32(field_name) {
+                    row.insert(field_name.clone(), Value::String(int_val.to_string()));
+                } else if let Ok(int64_val) = doc.get_i64(field_name) {
+                    row.insert(field_name.clone(), Value::String(int64_val.to_string()));
+                } else if let Ok(datetime_val) = doc.get_datetime(field_name) {
+                    let timestamp_ms = datetime_val.timestamp_millis();
+                    if let Some(datetime) = chrono::DateTime::from_timestamp_millis(timestamp_ms) {
+                        row.insert(field_name.clone(), 
+                                 Value::String(datetime.format("%Y-%m-%d %H:%M:%S").to_string()));
+                    } else {
+                        row.insert(field_name.clone(), Value::String("N/A".to_string()));
+                    }
+                } else if doc.contains_key(field_name) {
+                    // Handle other BSON types
+                    if let Some(bson_val) = doc.get(field_name) {
+                        match bson_val {
+                            mongodb::bson::Bson::String(s) => {
+                                row.insert(field_name.clone(), Value::String(s.clone()));
+                            }
+                            mongodb::bson::Bson::Boolean(b) => {
+                                row.insert(field_name.clone(), Value::String(b.to_string()));
+                            }
+                            mongodb::bson::Bson::Int32(i) => {
+                                row.insert(field_name.clone(), Value::String(i.to_string()));
+                            }
+                            mongodb::bson::Bson::Int64(i) => {
+                                row.insert(field_name.clone(), Value::String(i.to_string()));
+                            }
+                            mongodb::bson::Bson::Double(d) => {
+                                row.insert(field_name.clone(), Value::String(d.to_string()));
+                            }
+                            mongodb::bson::Bson::Null => {
+                                row.insert(field_name.clone(), Value::String("".to_string()));
+                            }
+                            _ => {
+                                row.insert(field_name.clone(), Value::String(format!("{:?}", bson_val)));
+                            }
+                        }
+                    }
+                } else {
+                    // Field doesn't exist in document
+                    row.insert(field_name.clone(), Value::String("N/A".to_string()));
+                }
             }
             
             row
@@ -281,7 +513,6 @@ pub async fn fetch_list_data(
     let total_pages = if per_page > 0 { (total + per_page - 1) / per_page } else { 1 };
     
     // Build pagination with current filters
-    let mut base_url = req.path().to_string();
     let mut filter_params = Vec::new();
     for (key, value) in &query_params {
         if key != "page" && !value.is_empty() {
@@ -303,7 +534,7 @@ pub async fn fetch_list_data(
     });
     
     info!("Fetched {} items for list view (page {} of {}) with filters", rows.len(), page, total_pages);
-    Ok((headers, rows, pagination))
+    Ok((columns, rows, pagination))
 }
 
 /// Get filters data and current filter values for the template
@@ -359,12 +590,17 @@ pub fn get_filters_data(
         }
     }
     
+    // Also handle global search
+    if let Some(search_value) = query_params.get("search") {
+        if !search_value.is_empty() {
+            current_filters.insert("search".to_string(), Value::String(search_value.clone()));
+        }
+    }
+    
     (filters, current_filters)
 }
 
-
-
-/// Fetch single item data for view/edit pages
+/// Fetch single item data for view/edit pages - Generic version that works with any resource
 pub async fn fetch_single_item_data(
     resource: &Arc<Box<dyn AdmixResource>>,
     req: &HttpRequest,
@@ -384,46 +620,97 @@ pub async fn fetch_single_item_data(
     // Convert to template-friendly format
     let mut record = serde_json::Map::new();
     
-    // Handle MongoDB ObjectId
+    // Handle MongoDB ObjectId first
     if let Ok(oid) = doc.get_object_id("_id") {
         record.insert("id".to_string(), Value::String(oid.to_hex()));
     }
     
-    // Extract other fields
-    if let Ok(name) = doc.get_str("name") {
-        record.insert("name".to_string(), Value::String(name.to_string()));
-    }
+    // Get all permitted fields from the resource and extract them from the document
+    let permitted_fields = resource.permit_keys();
     
-    if let Ok(email) = doc.get_str("email") {
-        record.insert("email".to_string(), Value::String(email.to_string()));
-    }
-    
-    // Handle created_at timestamp
-    if let Ok(created_at) = doc.get_datetime("created_at") {
-        let timestamp_ms = created_at.timestamp_millis();
-        if let Some(datetime) = chrono::DateTime::from_timestamp_millis(timestamp_ms) {
-            record.insert("created_at".to_string(), 
-                         Value::String(datetime.format("%Y-%m-%d %H:%M:%S").to_string()));
-        } else {
-            record.insert("created_at".to_string(), Value::String("N/A".to_string()));
+    for field_name in permitted_fields {
+        // Try different data types for each field
+        if let Ok(string_val) = doc.get_str(field_name) {
+            record.insert(field_name.to_string(), Value::String(string_val.to_string()));
+        } else if let Ok(bool_val) = doc.get_bool(field_name) {
+            record.insert(field_name.to_string(), Value::String(bool_val.to_string()));
+        } else if let Ok(int_val) = doc.get_i32(field_name) {
+            record.insert(field_name.to_string(), Value::String(int_val.to_string()));
+        } else if let Ok(int64_val) = doc.get_i64(field_name) {
+            record.insert(field_name.to_string(), Value::String(int64_val.to_string()));
+        } else if let Ok(float_val) = doc.get_f64(field_name) {
+            record.insert(field_name.to_string(), Value::String(float_val.to_string()));
+        } else if let Ok(datetime_val) = doc.get_datetime(field_name) {
+            let timestamp_ms = datetime_val.timestamp_millis();
+            if let Some(datetime) = chrono::DateTime::from_timestamp_millis(timestamp_ms) {
+                // For date/datetime fields, format them appropriately
+                if field_name.contains("date") || field_name.contains("time") || field_name == "created_at" || field_name == "updated_at" {
+                    record.insert(field_name.to_string(), 
+                                Value::String(datetime.format("%Y-%m-%d %H:%M:%S").to_string()));
+                } else {
+                    record.insert(field_name.to_string(), 
+                                Value::String(datetime.to_rfc3339()));
+                }
+            } else {
+                record.insert(field_name.to_string(), Value::String("N/A".to_string()));
+            }
+        }
+        // If field exists but we can't parse it, try to get it as a generic BSON value
+        else if doc.contains_key(field_name) {
+            if let Some(bson_val) = doc.get(field_name) {
+                match bson_val {
+                    mongodb::bson::Bson::String(s) => {
+                        record.insert(field_name.to_string(), Value::String(s.clone()));
+                    }
+                    mongodb::bson::Bson::Boolean(b) => {
+                        record.insert(field_name.to_string(), Value::String(b.to_string()));
+                    }
+                    mongodb::bson::Bson::Int32(i) => {
+                        record.insert(field_name.to_string(), Value::String(i.to_string()));
+                    }
+                    mongodb::bson::Bson::Int64(i) => {
+                        record.insert(field_name.to_string(), Value::String(i.to_string()));
+                    }
+                    mongodb::bson::Bson::Double(d) => {
+                        record.insert(field_name.to_string(), Value::String(d.to_string()));
+                    }
+                    mongodb::bson::Bson::Null => {
+                        record.insert(field_name.to_string(), Value::String("".to_string()));
+                    }
+                    _ => {
+                        // For complex types, convert to string representation
+                        record.insert(field_name.to_string(), Value::String(format!("{:?}", bson_val)));
+                    }
+                }
+            }
         }
     }
     
-    // Handle updated_at timestamp
-    if let Ok(updated_at) = doc.get_datetime("updated_at") {
-        let timestamp_ms = updated_at.timestamp_millis();
-        if let Some(datetime) = chrono::DateTime::from_timestamp_millis(timestamp_ms) {
-            record.insert("updated_at".to_string(), 
-                         Value::String(datetime.format("%Y-%m-%d %H:%M:%S").to_string()));
-        } else {
-            record.insert("updated_at".to_string(), Value::String("N/A".to_string()));
+    // Always handle standard timestamp fields even if not in permit_keys
+    if !record.contains_key("created_at") {
+        if let Ok(created_at) = doc.get_datetime("created_at") {
+            let timestamp_ms = created_at.timestamp_millis();
+            if let Some(datetime) = chrono::DateTime::from_timestamp_millis(timestamp_ms) {
+                record.insert("created_at".to_string(), 
+                             Value::String(datetime.format("%Y-%m-%d %H:%M:%S").to_string()));
+            }
         }
     }
     
-    info!("Fetched single item with id: {} for resource: {}", id, resource.resource_name());
+    if !record.contains_key("updated_at") {
+        if let Ok(updated_at) = doc.get_datetime("updated_at") {
+            let timestamp_ms = updated_at.timestamp_millis();
+            if let Some(datetime) = chrono::DateTime::from_timestamp_millis(timestamp_ms) {
+                record.insert("updated_at".to_string(), 
+                             Value::String(datetime.format("%Y-%m-%d %H:%M:%S").to_string()));
+            }
+        }
+    }
+    
+    info!("Fetched single item with id: {} for resource: {} with fields: {:?}", 
+          id, resource.resource_name(), record.keys().collect::<Vec<_>>());
     Ok(record)
 }
-
 
 pub fn get_default_form_structure() -> Value {
     serde_json::json!({

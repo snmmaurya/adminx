@@ -10,13 +10,31 @@ use crate::registry::get_registered_menus;
 use crate::utils::jwt::create_jwt_token;
 use crate::utils::structs::LoginForm;
 use crate::configs::initializer::AdminxConfig;
-use crate::utils::auth::{is_rate_limited, reset_rate_limit};
+use crate::utils::auth::{is_rate_limited, reset_rate_limit, extract_claims_from_session};
 use std::time::Duration;
+use crate::helpers::auth_helper::{
+    create_base_template_context_with_auth,
+};
+
 
 /// GET /adminx/login - Show login page
-pub async fn login_form() -> impl Responder {
+pub async fn login_form(
+    session: Session,
+    config: web::Data<AdminxConfig>,
+) -> impl Responder {
+    // Check if user is already authenticated
+    if let Ok(_claims) = extract_claims_from_session(&session, &config).await {
+        // User is already logged in, redirect to dashboard
+        return HttpResponse::Found()
+            .append_header(("Location", "/adminx"))
+            .finish();
+    }
+    
     let mut ctx = Context::new();
-    ctx.insert("menus", &get_registered_menus());
+    // Important: Set authentication status to false for login page
+    ctx.insert("is_authenticated", &false);
+    ctx.insert("page_title", "Login");
+    // Don't insert menus for unauthenticated users
     render_template("login.html.tera", ctx).await
 }
 
@@ -24,18 +42,37 @@ pub async fn login_form() -> impl Responder {
 pub async fn login_action(
     form: web::Form<LoginForm>,
     session: Session,
-    config: web::Data<AdminxConfig>, // Inject config
+    config: web::Data<AdminxConfig>,
 ) -> impl Responder {
     let email = form.email.trim();
     let password = form.password.trim();
     
     info!("Attempting login for: {}", email);
     
-    // Rate limiting check (optional security enhancement)
+    // Input validation
+    if email.is_empty() || password.is_empty() {
+        warn!("Empty email or password for login attempt");
+        let mut ctx = Context::new();
+        ctx.insert("is_authenticated", &false);
+        ctx.insert("error", "Email and password are required");
+        return render_template("login.html.tera", ctx).await;
+    }
+    
+    if !email.contains('@') {
+        warn!("Invalid email format: {}", email);
+        let mut ctx = Context::new();
+        ctx.insert("is_authenticated", &false);
+        ctx.insert("error", "Invalid email format");
+        return render_template("login.html.tera", ctx).await;
+    }
+    
+    // Rate limiting check
     if is_rate_limited(email, 5, Duration::from_secs(900)) {
         warn!("Rate limit exceeded for: {}", email);
-        return HttpResponse::TooManyRequests()
-            .body("Too many login attempts. Please try again later.");
+        let mut ctx = Context::new();
+        ctx.insert("is_authenticated", &false);
+        ctx.insert("error", "Too many login attempts. Please try again later.");
+        return render_template("login.html.tera", ctx).await;
     }
     
     // Dummy hash to prevent timing attacks
@@ -48,7 +85,10 @@ pub async fn login_action(
                     Some(id) => id.to_string(),
                     None => {
                         error!("Admin has no ID: {}", email);
-                        return HttpResponse::InternalServerError().body("Missing Admin ID");
+                        let mut ctx = Context::new();
+                        ctx.insert("is_authenticated", &false);
+                        ctx.insert("error", "Authentication failed - missing admin ID");
+                        return render_template("login.html.tera", ctx).await;
                     }
                 };
                 
@@ -62,57 +102,92 @@ pub async fn login_action(
                         
                         if let Err(err) = session.insert("admintoken", &token) {
                             error!("Session insertion failed: {}", err);
-                            return HttpResponse::InternalServerError().body("Session storage failed");
+                            let mut ctx = Context::new();
+                            ctx.insert("is_authenticated", &false);
+                            ctx.insert("error", "Session creation failed");
+                            return render_template("login.html.tera", ctx).await;
                         }
+
                         HttpResponse::Found()
                             .append_header(("Location", "/adminx"))
                             .finish()
                     }
                     Err(err) => {
                         error!("JWT generation failed for {}: {}", email, err);
-                        HttpResponse::InternalServerError().body("Token generation failed")
+                        let mut ctx = Context::new();
+                        ctx.insert("is_authenticated", &false);
+                        ctx.insert("error", "Authentication failed - token generation error");
+                        render_template("login.html.tera", ctx).await
                     }
                 }
             } else {
                 // Perform dummy verification to maintain consistent timing
                 bcrypt::verify(password, dummy_hash).ok();
-                info!("Invalid password for: {}", email);
-                HttpResponse::Unauthorized().body("Invalid credentials")
+                warn!("Invalid password for: {}", email);
+                let mut ctx = Context::new();
+                ctx.insert("is_authenticated", &false);
+                ctx.insert("error", "Invalid email or password");
+                render_template("login.html.tera", ctx).await
             }
         }
         None => {
             // Perform dummy verification to maintain consistent timing
             bcrypt::verify(password, dummy_hash).ok();
-            info!("Admin not found: {}", email);
-            HttpResponse::Unauthorized().body("Invalid credentials")
+            warn!("Admin not found: {}", email);
+            let mut ctx = Context::new();
+            ctx.insert("is_authenticated", &false);
+            ctx.insert("error", "Invalid email or password");
+            render_template("login.html.tera", ctx).await
         }
     }
 }
 
-/// POST /adminx/logout - Clear session and redirect
+/// GET/POST /adminx/logout - Clear session and redirect
 pub async fn logout_action(session: Session) -> impl Responder {
-    // session.clear() returns (), not a Result, so we can't use if let Err
+    // Get user info before clearing session for logging
+    let user_info = session.get::<String>("admintoken")
+        .unwrap_or_default()
+        .unwrap_or_else(|| "unknown".to_string());
+    
+    // Clear the session
     session.clear();
     
-    info!("User logged out successfully");
+    info!("User logged out successfully: {}", if user_info == "unknown" { "session_token_unavailable" } else { "user_had_valid_session" });
+    
     HttpResponse::Found()
         .append_header(("Location", "/adminx/login"))
         .finish()
 }
 
-/// GET /adminx/profile - Show user profile (example of protected route)
+/// GET /adminx - Dashboard/Home page
+pub async fn dashboard_view(
+    session: Session,
+    config: web::Data<AdminxConfig>,
+) -> impl Responder {
+    match create_base_template_context_with_auth("Dashboard", "", &session, &config).await {
+        Ok(mut ctx) => {
+            ctx.insert("page_title", "Dashboard");
+            render_template("stats.html.tera", ctx).await
+        }
+        Err(redirect_response) => redirect_response,
+    }
+}
+
+/// GET /adminx/profile - Show user profile
 pub async fn profile_view(
     session: Session,
     config: web::Data<AdminxConfig>,
 ) -> impl Responder {
-    use crate::utils::auth::extract_claims_from_session;
-    
     match extract_claims_from_session(&session, &config).await {
         Ok(claims) => {
             let mut ctx = Context::new();
+            ctx.insert("is_authenticated", &true);
             ctx.insert("user_email", &claims.email);
             ctx.insert("user_role", &claims.role);
+            ctx.insert("user_roles", &claims.roles);
+            ctx.insert("current_user", &claims);
             ctx.insert("menus", &get_registered_menus());
+            ctx.insert("page_title", "Profile");
             render_template("profile.html.tera", ctx).await
         }
         Err(_) => {
@@ -133,9 +208,9 @@ fn auth_error_response(message: &str, status: actix_web::http::StatusCode) -> Ht
         }))
 }
 
-/// Enhanced login with better error handling and security
-pub async fn enhanced_login_action(
-    form: web::Form<LoginForm>,
+/// Enhanced JSON login endpoint for API calls
+pub async fn api_login_action(
+    form: web::Json<LoginForm>,
     session: Session,
     config: web::Data<AdminxConfig>,
     req: actix_web::HttpRequest,
@@ -143,7 +218,7 @@ pub async fn enhanced_login_action(
     let email = form.email.trim();
     let password = form.password.trim();
     
-    // Get request metadata for logging - fix the lifetime issue
+    // Get request metadata for logging
     let connection_info = req.connection_info();
     let ip = connection_info.peer_addr().unwrap_or("unknown");
     let user_agent = req.headers().get("user-agent")
@@ -154,7 +229,7 @@ pub async fn enhanced_login_action(
         email = %email,
         ip = %ip,
         user_agent = %user_agent,
-        "Login attempt"
+        "API login attempt"
     );
     
     // Input validation
@@ -199,7 +274,7 @@ pub async fn enhanced_login_action(
                         info!(
                             email = %email,
                             ip = %ip,
-                            "Login successful"
+                            "API login successful"
                         );
                         
                         reset_rate_limit(email);
@@ -213,7 +288,11 @@ pub async fn enhanced_login_action(
                         HttpResponse::Ok().json(serde_json::json!({
                             "success": true,
                             "redirect": "/adminx",
-                            "message": "Login successful"
+                            "message": "Login successful",
+                            "user": {
+                                "email": email,
+                                "role": "admin"
+                            }
                         }))
                     }
                     Err(err) => {
@@ -242,6 +321,30 @@ pub async fn enhanced_login_action(
             );
             auth_error_response("Invalid credentials", 
                 actix_web::http::StatusCode::UNAUTHORIZED)
+        }
+    }
+}
+
+/// API endpoint to check authentication status
+pub async fn check_auth_status(
+    session: Session,
+    config: web::Data<AdminxConfig>,
+) -> impl Responder {
+    match extract_claims_from_session(&session, &config).await {
+        Ok(claims) => {
+            HttpResponse::Ok().json(serde_json::json!({
+                "authenticated": true,
+                "user": {
+                    "email": claims.email,
+                    "role": claims.role,
+                    "roles": claims.roles
+                }
+            }))
+        }
+        Err(_) => {
+            HttpResponse::Ok().json(serde_json::json!({
+                "authenticated": false
+            }))
         }
     }
 }
