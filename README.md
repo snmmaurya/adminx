@@ -519,6 +519,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - 💬 [Discussions](https://github.com/snmmaurya/adminx/discussions)
 - 🐛 [Issues](https://github.com/snmmaurya/adminx/issues)
 - 📧 Email: sxmmaurya@gmail.com
+- 📧 Email: deepxmaurya@gmail.com
 
 ---
 
