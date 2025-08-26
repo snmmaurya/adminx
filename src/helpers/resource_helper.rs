@@ -9,8 +9,6 @@ use actix_session::Session;
 use futures::TryStreamExt;
 
 use crate::AdmixResource;
-use crate::helpers::form_helper::extract_fields_for_form;
-use crate::helpers::template_helper::render_template;
 use crate::configs::initializer::AdminxConfig;
 use crate::utils::auth::extract_claims_from_session;
 use crate::utils::structs::Claims;
@@ -603,7 +601,7 @@ pub fn get_filters_data(
 /// Fetch single item data for view/edit pages - Generic version that works with any resource
 pub async fn fetch_single_item_data(
     resource: &Arc<Box<dyn AdmixResource>>,
-    req: &HttpRequest,
+    _req: &HttpRequest,
     id: &str,
 ) -> Result<serde_json::Map<String, Value>, Box<dyn std::error::Error + Send + Sync>> {
     let collection = resource.get_collection();

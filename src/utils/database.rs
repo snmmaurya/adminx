@@ -57,7 +57,7 @@ pub async fn initialize_database_with_validation(db: Database) -> Result<()> {
 
 // Optional: Database configuration validation
 pub fn validate_database_config() -> Result<()> {
-    let db = get_adminx_database();
+    let _db = get_adminx_database();
     
     // Check if required collections exist or create them
     // This is just an example - modify based on your needs

@@ -1,7 +1,7 @@
 // crates/adminx/src/helpers/downloads/csv_download.rs
 use actix_web::{HttpRequest, HttpResponse};
 use std::sync::Arc;
-use tracing::{info, error};
+use tracing::{info};
 use std::collections::HashSet;
 use futures::TryStreamExt;
 use crate::AdmixResource;

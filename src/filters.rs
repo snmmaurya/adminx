@@ -1,6 +1,4 @@
-use actix_web::HttpRequest;
 use mongodb::bson::{doc, Document};
-use serde::Deserialize;
 
 #[derive(Debug)]
 pub struct FilterOptions {

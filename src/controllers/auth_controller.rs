@@ -1,7 +1,6 @@
 // adminx/src/controllers/auth_controller.rs
 use actix_session::Session;
 use actix_web::{web, HttpResponse, Responder};
-use serde::Deserialize;
 use tera::Context;
 use tracing::{error, info, warn};
 use crate::helpers::template_helper::render_template;

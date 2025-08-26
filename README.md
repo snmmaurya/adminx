@@ -499,6 +499,8 @@ cargo run
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
+---
+
 ## 🙏 Acknowledgments
 
 - Built with [Actix Web](https://actix.rs/) - Fast, powerful web framework
@@ -507,10 +509,12 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Database with [MongoDB](https://www.mongodb.com/) - Document database
 - Schemas with [Schemars](https://crates.io/crates/schemars) - JSON Schema generation
 
+---
+
 ## 📞 Support
 
-- 📖 [How it works](https://adminx.snmmaurya.com/get-started)
-- 📖 [Support](https://adminx.snmmaurya.com/support)
+- 📖 [How it works](https://adminx.srotas.space/get-started)
+- 📖 [Support](https://adminx.srotas.space/support)
 - 📖 [Documentation](https://docs.rs/adminx)
 - 💬 [Discussions](https://github.com/snmmaurya/adminx/discussions)
 - 🐛 [Issues](https://github.com/snmmaurya/adminx/issues)
@@ -518,7 +522,17 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**Made with ❤️ by the AdminX Team (Snm Maurya)**
+Made with ❤️ by the Rustacean360 Team
+
+## 👥 Contributors
+
+- **[Snm Maurya](https://github.com/snmmaurya)** - Creator & Lead Developer  
+  <img src="https://snmmaurya.com/images/snmmaurya.jpg" alt="Snm Maurya" width="80" height="80" style="border-radius: 50%;">  
+  [LinkedIn](https://www.linkedin.com/in/snmmaurya/)
+
+- **[Deepak Maurya](https://github.com/deepxmaurya)** - Core Developer & Contributor  
+  <img src="https://snmmaurya.com/images/deepxmaurya.jpg" alt="Deepak Maurya" width="80" height="80" style="border-radius: 50%;">  
+  [LinkedIn](https://www.linkedin.com/in/deepxmaurya/)
+
 
 [![GitHub stars](https://img.shields.io/github/stars/snmmaurya/adminx?style=social)](https://github.com/snmmaurya/adminx)
-[![Twitter Follow](https://img.shields.io/twitter/follow/adminx_framework?style=social)](https://twitter.com/adminx_framework)

@@ -1,5 +1,5 @@
 // adminx/src/helpers/template_helper.rs
-use actix_web::{HttpResponse, web};
+use actix_web::{HttpResponse};
 use actix_session::Session;
 use once_cell::sync::Lazy;
 use std::sync::Arc;

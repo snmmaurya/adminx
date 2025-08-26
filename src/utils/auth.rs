@@ -1,12 +1,11 @@
-// adminx/src/utils/auth.rs - Fixed version
+// adminx/src/utils/auth.rs
 use crate::models::adminx_model::{AdminxUser};
 use crate::configs::initializer::AdminxConfig;
 use mongodb::{
-    Database,
-    bson::{doc, oid::ObjectId, DateTime as BsonDateTime},
+    bson::{doc, DateTime as BsonDateTime},
 };
 use bcrypt::{hash, DEFAULT_COST};
-use anyhow::{Result, Context};
+use anyhow::{Result};
 use crate::{custom_error_nonexpression, custom_error_expression};
 use serde::{Serialize, Deserialize};
 use actix_session::Session;

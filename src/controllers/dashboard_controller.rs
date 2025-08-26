@@ -1,6 +1,6 @@
 // adminx/src/controllers/dashboard_controller.rs
 
-use actix_web::{get, HttpResponse, Responder, web, HttpRequest};
+use actix_web::{HttpResponse, Responder, web, HttpRequest};
 use actix_session::Session;
 use tera::Context;
 use crate::registry::get_registered_menus;
@@ -12,7 +12,7 @@ use tracing::info;
 pub async fn adminx_home(
     session: Session,
     config: web::Data<AdminxConfig>,
-    req: HttpRequest,
+    _req: HttpRequest,
 ) -> impl Responder {
     // Check if user is authenticated
     match extract_claims_from_session(&session, &config).await {

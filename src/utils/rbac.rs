@@ -1,7 +1,6 @@
 // src/utils/rbac.rs
 use crate::menu::MenuAction;
 use crate::resource::AdmixResource;
-use serde_json::Value;
 
 pub fn has_permission(resource: &dyn AdmixResource, roles: &[String], action: MenuAction) -> bool {
     let permissions = resource.allowed_roles_with_permissions();

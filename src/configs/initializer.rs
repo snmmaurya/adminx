@@ -1,9 +1,8 @@
 // src/configs/initializer.rs
-use crate::helpers::template_helper::ADMINX_TEMPLATES;
 use log::{info, debug, warn};
 use mongodb::Database;
-use anyhow::{anyhow, Error as AnyhowError};
-use actix_web::{web, App, middleware::Logger, dev};
+use anyhow::{Error as AnyhowError};
+use actix_web::{web};
 use actix_session::{SessionMiddleware, storage::CookieSessionStore, config::PersistentSession};
 use actix_web::cookie::{Key, SameSite};
 use env_logger::Env;
@@ -14,8 +13,6 @@ use crate::utils::{
         initiate_database
     },
 };
-use actix_files as fs;
-use std::path::PathBuf;
 
 #[derive(Debug, Clone)]
 pub struct AdminxConfig {

@@ -6,7 +6,6 @@ use actix_web::{
 use futures_util::future::LocalBoxFuture;
 use std::{
     collections::HashSet,
-    future::Ready,
     rc::Rc,
 };
 use actix_session::SessionExt;
@@ -15,7 +14,7 @@ use crate::utils::{
         extract_claims_from_session
     },
     structs::{
-        RoleGuard, Claims // ✅ Import both RoleGuard and Claims
+        RoleGuard
     },
 };
 use crate::configs::initializer::AdminxConfig;
@@ -59,7 +58,7 @@ where
 
     forward_ready!(service);
 
-    fn call(&self, mut req: ServiceRequest) -> Self::Future {
+    fn call(&self, req: ServiceRequest) -> Self::Future {
         let svc = Rc::clone(&self.service);
         let allowed_roles = self.allowed_roles.clone();
 

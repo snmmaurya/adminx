@@ -1,16 +1,8 @@
 // crates/adminx/src/router.rs - Complete Fixed Version
-use actix_web::{web, Scope, HttpRequest, HttpResponse, HttpMessage};
-use serde_json::Value;
-use crate::nested::AdmixNestedResource;
+use actix_web::{web, Scope};
+use tracing::{info, warn};
 use crate::registry::all_resources;
-use crate::resource::AdmixResource;
-use crate::actions::CustomAction;
-use crate::menu::MenuAction;
-use crate::utils::rbac::has_permission;
 use crate::controllers::{
-    dashboard_controller::{
-        adminx_home
-    },
     resource_controller::{
         register_admix_resource_routes
     }
@@ -29,18 +21,7 @@ use crate::utils::{
         RoleGuard
     },
 };
-use tracing::{info, warn, error};
 
-fn extract_roles_from_request(req: &HttpRequest) -> Vec<String> {
-    // Extract roles from request extensions (set by middleware)
-    if let Some(claims) = req.extensions().get::<crate::utils::structs::Claims>() {
-        let mut roles = claims.roles.clone();
-        roles.push(claims.role.clone());
-        roles
-    } else {
-        Vec::new()
-    }
-}
 
 pub fn register_all_admix_routes() -> Scope {
     info!("🔧 Starting AdminX route registration...");

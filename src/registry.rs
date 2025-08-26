@@ -2,7 +2,7 @@
 use crate::resource::AdmixResource;
 use std::sync::RwLock;
 use lazy_static::lazy_static;
-use crate::menu::{MenuItem, MenuAction};
+use crate::menu::{MenuItem};
 use std::collections::HashMap;
 
 lazy_static! {

@@ -2,7 +2,6 @@
 use actix_web::{web, HttpRequest, HttpResponse, Scope};
 use serde_json::Value;
 use std::sync::Arc;
-use tera::Context;
 use tracing::{info, warn, error};
 use actix_session::Session;
 
@@ -16,7 +15,6 @@ use crate::helpers::resource_helper::{
     handle_create_response,
     handle_update_response,
     handle_delete_response,
-    get_default_list_structure,
     get_default_form_structure,
     get_default_view_structure,
     fetch_list_data,
