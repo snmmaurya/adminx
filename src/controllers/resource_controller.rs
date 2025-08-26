@@ -1,4 +1,4 @@
-// crates/adminx/src/controllers/resource_controller.rs - COMPLETE FIXED VERSION
+// crates/adminx/src/controllers/resource_controller.rs
 use actix_web::{web, HttpRequest, HttpResponse, Scope};
 use serde_json::Value;
 use std::sync::Arc;

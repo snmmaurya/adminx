@@ -46,40 +46,25 @@
         <!-- Filter Toggle Button - Only show if filters are configured -->
         {% if filters and filters.filters %}
         <button id="filter-toggle" onclick="toggleFilters()" 
-                class="{% if has_active_filters %}bg-orange-600 hover:bg-orange-700{% else %}bg-gray-600 hover:bg-gray-700{% endif %} text-white px-3 py-2 rounded-md text-sm font-medium flex items-center gap-1"
-                title="Toggle Filters">
+                class="{% if has_active_filters %}bg-orange-600 hover:bg-orange-700{% else %}bg-gray-600 hover:bg-gray-700{% endif %} text-white px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.414A1 1 0 013 6.707V4z"></path>
           </svg>
+          Filters
           {% if has_active_filters %}
             <span class="bg-white text-orange-600 text-xs px-2 py-1 rounded-full">Active</span>
           {% endif %}
         </button>
         {% endif %}
         
-        <a href="{{ base_path }}/new" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-md text-sm font-medium flex items-center gap-1" title="Create New">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-          </svg>
+        <a href="{{ base_path }}/new" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium">
+          Create New
         </a>
-        
-        <a href="{{ base_path }}/list?download=json&complete=false&page={{ pagination.next | default(value=1)}}" class="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-md text-sm font-medium flex items-center gap-1" title="Download JSON">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-          </svg>
+        <a href="{{ base_path }}/list?download=json" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium">
+          Download JSON
         </a>
-        
-        <a href="{{ base_path }}/list?download=csv&complete=false&page={{ pagination.next | default(value=1)}}" class="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-md text-sm font-medium flex items-center gap-1" title="Download CSV">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-          </svg>
-        </a>
-
-        <a href="{{ base_path }}/list?download=csv&complete=true" class="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-md text-sm font-medium flex items-center gap-1" title="Download CSV (All Records)">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6"/>
-          </svg>
+        <a href="{{ base_path }}/list?download=csv" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium">
+          Download CSV
         </a>
       </div>
     </div>
@@ -149,37 +134,14 @@
               {% endfor %}
             {% endif %}
 
-            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-              <div class="flex items-center space-x-2">
-                <a href="{{ base_path }}/view/{{ row['id'] | default(value=row['_id']) }}" 
-                   class="text-blue-600 hover:text-blue-900 dark:text-blue-400 p-1 rounded hover:bg-blue-50" 
-                   title="View">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                  </svg>
-                </a>
-                
-                <a href="{{ base_path }}/edit/{{ row['id'] | default(value=row['_id']) }}" 
-                   class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 p-1 rounded hover:bg-indigo-50" 
-                   title="Edit">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                  </svg>
-                </a>
-                
-                <form method="post" action="{{ base_path }}/{{ row['id'] | default(value=row['_id']) }}/delete" 
-                      style="display:inline;" 
-                      onsubmit="return confirm('Are you sure you want to delete this item?')">
-                  <button type="submit" 
-                          class="text-red-600 hover:text-red-900 dark:text-red-400 p-1 rounded hover:bg-red-50" 
-                          title="Delete">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                    </svg>
-                  </button>
-                </form>
-              </div>
+            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+              <a href="{{ base_path }}/view/{{ row['id'] | default(value=row['_id']) }}" class="text-blue-600 hover:text-blue-900 dark:text-blue-400">View</a>
+              <span class="text-gray-300">|</span>
+              <a href="{{ base_path }}/edit/{{ row['id'] | default(value=row['_id']) }}" class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400">Edit</a>
+              <span class="text-gray-300">|</span>
+              <form method="post" action="{{ base_path }}/{{ row['id'] | default(value=row['_id']) }}/delete" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this item?')">
+                <button type="submit" class="text-red-600 hover:text-red-900 dark:text-red-400">Delete</button>
+              </form>
             </td>
           </tr>
           {% else %}

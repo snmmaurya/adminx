@@ -6,6 +6,10 @@ use std::collections::HashSet;
 use futures::TryStreamExt;
 use crate::AdmixResource;
 use chrono::Utc;
+use crate::utils::constants::{
+    DEFAULT_PAGE,
+    DEFAULT_PER_PAGE,
+};
 
 pub async fn export_data_as_json(
     resource: &Arc<Box<dyn AdmixResource>>,
@@ -14,17 +18,32 @@ pub async fn export_data_as_json(
 ) -> Result<HttpResponse, Box<dyn std::error::Error + Send + Sync>> {
     let collection = resource.get_collection();
     
-    // Parse query parameters for filters (but ignore pagination)
+    // Parse query parameters for filters and pagination
     let query_params: std::collections::HashMap<String, String> = 
         serde_urlencoded::from_str(req.query_string()).unwrap_or_default();
     
-    // Build filter document from query parameters (same logic as fetch_list_data but no pagination)
+    // Extract pagination parameters
+    let page = query_params.get("page")
+        .and_then(|p| p.parse::<u64>().ok())
+        .unwrap_or(DEFAULT_PAGE);
+    
+    let per_page = query_params.get("per_page")
+        .and_then(|p| p.parse::<u64>().ok())
+        .unwrap_or(DEFAULT_PER_PAGE);
+    
+    let complete_export = query_params.get("complete")
+        .map(|v| v == "true")
+        .unwrap_or(false);
+    
+    // Build filter document from query parameters
     let mut filter_doc = mongodb::bson::doc! {};
     let permitted_fields: HashSet<&str> = resource.permit_keys().into_iter().collect();
     
     // Apply the same filters as the list view
     for (key, value) in &query_params {
-        if !value.is_empty() && (permitted_fields.contains(key.as_str()) || key == "search") && key != "download" {
+        if !value.is_empty() && 
+           (permitted_fields.contains(key.as_str()) || key == "search") && 
+           !["download", "page", "per_page", "complete"].contains(&key.as_str()) {
             match key.as_str() {
                 "name" | "email" | "username" | "key" | "title" | "description" | "search" => {
                     if key == "search" {
@@ -69,9 +88,21 @@ pub async fn export_data_as_json(
     
     info!("Exporting JSON with filters: {:?}", filter_doc);
     
-    // Fetch ALL documents (no limit/skip) with filters applied
+    // Configure find options with conditional pagination
     let mut find_options = mongodb::options::FindOptions::default();
     find_options.sort = Some(mongodb::bson::doc! { "created_at": -1 });
+    
+    if complete_export {
+        // Export all records (no pagination limits)
+        info!("Exporting complete JSON dataset (all records)");
+        // Don't set skip or limit - fetch everything
+    } else {
+        // Apply pagination for current page only
+        let skip = (page - 1) * per_page;
+        find_options.skip = Some(skip);
+        find_options.limit = Some(per_page as i64);
+        info!("Exporting JSON page {} ({} records per page)", page, per_page);
+    }
     
     let mut cursor = collection.find(filter_doc, find_options).await
         .map_err(|e| format!("Database query failed: {}", e))?;
@@ -144,21 +175,47 @@ pub async fn export_data_as_json(
         documents.push(serde_json::Value::Object(json_doc));
     }
     
-    let json_data = serde_json::json!({
-        "data": documents,
-        "total": documents.len(),
-        "exported_at": Utc::now().to_rfc3339(),
-        "resource": resource.resource_name()
-    });
+    // Enhanced JSON response with pagination info
+    let json_data = if complete_export {
+        serde_json::json!({
+            "data": documents,
+            "total": documents.len(),
+            "exported_at": Utc::now().to_rfc3339(),
+            "resource": resource.resource_name(),
+            "export_type": "complete"
+        })
+    } else {
+        serde_json::json!({
+            "data": documents,
+            "total": documents.len(),
+            "exported_at": Utc::now().to_rfc3339(),
+            "resource": resource.resource_name(),
+            "export_type": "paginated",
+            "page": page,
+            "per_page": per_page
+        })
+    };
     
     let json_string = serde_json::to_string_pretty(&json_data)
         .map_err(|e| format!("Failed to serialize JSON: {}", e))?;
     
-    let filename = format!("{}_{}.json", 
-                          resource.resource_name(), 
-                          Utc::now().format("%Y%m%d_%H%M%S"));
+    // Generate filename with pagination info
+    let filename = if complete_export {
+        format!("{}_{}_complete.json", 
+                resource.resource_name(), 
+                Utc::now().format("%Y%m%d_%H%M%S"))
+    } else {
+        format!("{}_page{}_{}.json", 
+                resource.resource_name(),
+                page,
+                Utc::now().format("%Y%m%d_%H%M%S"))
+    };
     
-    info!("✅ Exported {} records as JSON", documents.len());
+    if complete_export {
+        info!("✅ Exported {} records as complete JSON", documents.len());
+    } else {
+        info!("✅ Exported {} records as JSON (page {})", documents.len(), page);
+    }
     
     Ok(HttpResponse::Ok()
         .content_type("application/json")

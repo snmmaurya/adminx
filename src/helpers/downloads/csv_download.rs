@@ -6,8 +6,12 @@ use std::collections::HashSet;
 use futures::TryStreamExt;
 use crate::AdmixResource;
 use chrono::Utc;
+use crate::utils::constants::{
+    DEFAULT_PAGE,
+    DEFAULT_PER_PAGE,
+};
 
-/// Export ALL data as CSV (ignoring pagination, respecting filters)
+/// Export data as CSV with pagination support
 pub async fn export_data_as_csv(
     resource: &Arc<Box<dyn AdmixResource>>,
     req: &HttpRequest,
@@ -15,16 +19,31 @@ pub async fn export_data_as_csv(
 ) -> Result<HttpResponse, Box<dyn std::error::Error + Send + Sync>> {
     let collection = resource.get_collection();
     
-    // Parse query parameters for filters (same as JSON export)
+    // Parse query parameters for filters and pagination
     let query_params: std::collections::HashMap<String, String> = 
         serde_urlencoded::from_str(req.query_string()).unwrap_or_default();
     
-    // Build filter document (same logic as JSON export)
+    // Extract pagination parameters
+    let page = query_params.get("page")
+        .and_then(|p| p.parse::<u64>().ok())
+        .unwrap_or(DEFAULT_PAGE);
+    
+    let per_page = query_params.get("per_page")
+        .and_then(|p| p.parse::<u64>().ok())
+        .unwrap_or(DEFAULT_PER_PAGE);
+    
+    let complete_export = query_params.get("complete")
+        .map(|v| v == "true")
+        .unwrap_or(false);
+    
+    // Build filter document (same logic as before)
     let mut filter_doc = mongodb::bson::doc! {};
     let permitted_fields: HashSet<&str> = resource.permit_keys().into_iter().collect();
     
     for (key, value) in &query_params {
-        if !value.is_empty() && (permitted_fields.contains(key.as_str()) || key == "search") && key != "download" {
+        if !value.is_empty() && 
+           (permitted_fields.contains(key.as_str()) || key == "search") && 
+           !["download", "page", "per_page", "complete"].contains(&key.as_str()) {
             match key.as_str() {
                 "name" | "email" | "username" | "key" | "title" | "description" | "search" => {
                     if key == "search" {
@@ -69,9 +88,21 @@ pub async fn export_data_as_csv(
     
     info!("Exporting CSV with filters: {:?}", filter_doc);
     
-    // Fetch ALL documents
+    // Configure find options with conditional pagination
     let mut find_options = mongodb::options::FindOptions::default();
     find_options.sort = Some(mongodb::bson::doc! { "created_at": -1 });
+    
+    if complete_export {
+        // Export all records (no pagination limits)
+        info!("Exporting complete CSV dataset (all records)");
+        // Don't set skip or limit - fetch everything
+    } else {
+        // Apply pagination for current page only
+        let skip = (page - 1) * per_page;
+        find_options.skip = Some(skip);
+        find_options.limit = Some(per_page as i64);
+        info!("Exporting CSV page {} ({} records per page)", page, per_page);
+    }
     
     let mut cursor = collection.find(filter_doc, find_options).await
         .map_err(|e| format!("Database query failed: {}", e))?;
@@ -151,11 +182,23 @@ pub async fn export_data_as_csv(
         record_count += 1;
     }
     
-    let filename = format!("{}_{}.csv", 
-                          resource.resource_name(), 
-                          Utc::now().format("%Y%m%d_%H%M%S"));
+    // Generate filename with pagination info
+    let filename = if complete_export {
+        format!("{}_{}_complete.csv", 
+                resource.resource_name(), 
+                Utc::now().format("%Y%m%d_%H%M%S"))
+    } else {
+        format!("{}_page{}_{}.csv", 
+                resource.resource_name(),
+                page,
+                Utc::now().format("%Y%m%d_%H%M%S"))
+    };
     
-    info!("✅ Exported {} records as CSV", record_count);
+    if complete_export {
+        info!("✅ Exported {} records as complete CSV", record_count);
+    } else {
+        info!("✅ Exported {} records as CSV (page {})", record_count, page);
+    }
     
     Ok(HttpResponse::Ok()
         .content_type("text/csv")
