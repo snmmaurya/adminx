@@ -5,22 +5,29 @@ use std::sync::Arc;
 use tracing::{info, warn, error};
 use actix_session::Session;
 
-use crate::AdmixResource;
-use crate::helpers::form_helper::extract_fields_for_form;
-use crate::helpers::template_helper::render_template;
-use crate::helpers::resource_helper::{
-    check_authentication,
-    create_base_template_context,
-    convert_form_data_to_json,
-    handle_create_response,
-    handle_update_response,
-    handle_delete_response,
-    get_default_form_structure,
-    get_default_view_structure,
-    fetch_list_data,
-    fetch_single_item_data,
-};
 use crate::configs::initializer::AdminxConfig;
+use crate::AdmixResource;
+use crate::helpers::{
+    form_helper::{
+        extract_fields_for_form,
+        to_map,
+    },
+    template_helper::{
+        render_template,
+    },
+    resource_helper::{
+        check_authentication,
+        create_base_template_context,
+        convert_form_data_to_json,
+        handle_create_response,
+        handle_update_response,
+        handle_delete_response,
+        get_default_form_structure,
+        get_default_view_structure,
+        fetch_list_data,
+        fetch_single_item_data,
+    }
+};
 
 /// Register all UI + API routes for a resource
 pub fn register_admix_resource_routes(resource: Box<dyn AdmixResource>) -> Scope {
@@ -188,7 +195,8 @@ pub fn register_admix_resource_routes(resource: Box<dyn AdmixResource>) -> Scope
                             });
 
                         let mut ctx = create_base_template_context(&resource_name, &base_path, &claims);
-                        ctx.insert("fields", &extract_fields_for_form(&form));
+                        let form_map = to_map(&form);
+                        ctx.insert("fields", &extract_fields_for_form(&form_map));
                         ctx.insert("form_structure", &form);
                         ctx.insert("form", &form);
                         ctx.insert("is_edit_mode", &false);
@@ -276,7 +284,16 @@ pub fn register_admix_resource_routes(resource: Box<dyn AdmixResource>) -> Scope
                                 let form = resource.form_structure()
                                     .unwrap_or_else(|| get_default_form_structure());
 
-                                ctx.insert("fields", &extract_fields_for_form(&form));
+                                let form_map = to_map(&form);
+
+                                // let mut cleaned_record = serde_json::Value::Object(raw_record.clone());
+                                // coerce_editor_json_fields(&mut cleaned_record, &form_map);
+                                // // Transform the raw MongoDB data using form structure
+                                // // let cleaned_record = coerce_editor_json_fields(&raw_record, &form_map);
+
+                                // println!("cleaned_record: {:?}", cleaned_record);
+
+                                ctx.insert("fields", &extract_fields_for_form(&form_map));
                                 ctx.insert("form_structure", &form);
                                 ctx.insert("form", &form);
                                 ctx.insert("item_id", &item_id);

@@ -108,7 +108,7 @@ pub fn setup_adminx_logging(config: &AdminxConfig) {
     if env::var("ADMINX_LOGGING_INITIALIZED").is_err() {
         env_logger::Builder::from_env(Env::default().default_filter_or(&config.log_level))
             .format_timestamp_millis()
-            .init();
+            .try_init();
         
         env::set_var("ADMINX_LOGGING_INITIALIZED", "true");
         info!("✅ AdminX logging initialized");

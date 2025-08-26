@@ -277,6 +277,32 @@ HttpServer::new(move || {
 })
 ```
 
+
+### Cli Configuration
+
+# Use environment variables
+```rust
+export MONGODB_URL="mongodb://localhost:27017"
+export ADMINX_DB_NAME="adminx"
+adminx create -u admin -e admin@example.com -y
+```
+
+# Use command line arguments
+```rust
+adminx --mongodb-url "mongodb://localhost:27017" --database-name "adminx" list
+```
+
+# Interactive mode (will prompt for connection details)
+```rust
+adminx create -u newuser -e user@example.com
+```
+
+# Quick setup with defaults (localhost:27017, database: adminx)
+```rust
+adminx --mongodb-url "mongodb+srv://username:password@mongo-atlas-cluster.mongodb.net/?retryWrites=true&w=majority&appName=cluster-name" --database-name "dbname" create -u admin -e admin@srotas.space -p password -y
+```
+
+
 ## 🎯 Examples
 
 Check out the `examples/` directory for complete working examples:
@@ -448,32 +474,6 @@ fn cache_duration(&self) -> Option<Duration> {
 }
 ```
 
-## 🚀 Deployment
-
-### Docker
-
-```dockerfile
-FROM rust:1.75 as builder
-WORKDIR /app
-COPY . .
-RUN cargo build --release
-
-FROM debian:bookworm-slim
-RUN apt-get update && apt-get install -y ca-certificates
-COPY --from=builder /app/target/release/your-app /usr/local/bin/your-app
-EXPOSE 8080
-CMD ["your-app"]
-```
-
-### Environment Variables for Production
-
-```env
-JWT_SECRET=your-production-jwt-secret-key-32-chars-minimum
-SESSION_SECRET=your-production-session-secret-64-chars-minimum
-ENVIRONMENT=production
-DATABASE_URL=mongodb://user:pass@mongo-server:27017/dbname
-RUST_LOG=info
-```
 
 ## 🤝 Contributing
 

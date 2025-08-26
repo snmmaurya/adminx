@@ -36,40 +36,6 @@
 </script>
 {% endif %}
 
-<!-- Add Required CSS Styles -->
-<style>
-.editor-container {
-    border: 1px solid #d1d5db;
-    border-radius: 0.5rem;
-    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-}
-.dark .editor-container {
-    border-color: #4b5563;
-}
-.mode-button {
-    transition: all 0.2s ease;
-}
-.mode-button.active {
-    background-color: #3b82f6 !important;
-    color: white !important;
-    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-}
-.editor-textarea {
-    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Courier New', monospace !important;
-    line-height: 1.5;
-}
-.status-indicator {
-    transition: all 0.3s ease;
-}
-.fade-in {
-    opacity: 0;
-    animation: fadeIn 0.3s ease forwards;
-}
-@keyframes fadeIn {
-    to { opacity: 1; }
-}
-</style>
-
 <div class="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
   <!-- Header -->
   <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
@@ -272,10 +238,10 @@
                     <textarea name="{{ field.name }}" 
                               id="{{ field.name }}"
                               rows="10"
-                              class="editor-textarea block w-full px-4 py-3 text-base border-0 focus:ring-0 resize-y font-mono dark:bg-gray-700 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
+                              class="block w-full px-4 py-3 text-base border-0 focus:ring-0 resize-y font-mono dark:bg-gray-700 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
                               placeholder="<html>&#10;  <head>&#10;    <title>Page Title</title>&#10;  </head>&#10;  <body>&#10;    <h1>Hello World</h1>&#10;  </body>&#10;</html>"
                               {% if field.required %}required{% endif %}>{{ record[field.name] | default(value="") }}</textarea>
-                    <div id="{{ field.name }}_html_status" class="status-indicator absolute bottom-3 right-3 text-xs px-2 py-1 rounded hidden"></div>
+                    <div id="{{ field.name }}_html_status" class="absolute bottom-3 right-3 text-xs px-2 py-1 rounded hidden"></div>
                   </div>
                 </div>
               
@@ -315,15 +281,15 @@
                     <textarea name="{{ field.name }}" 
                               id="{{ field.name }}"
                               rows="12"
-                              class="editor-textarea block w-full px-4 py-3 text-base border-0 focus:ring-0 resize-y font-mono dark:bg-gray-700 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
+                              class="block w-full px-4 py-3 text-base border-0 focus:ring-0 resize-y font-mono dark:bg-gray-700 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
                               placeholder="{&#10;  &quot;name&quot;: &quot;example&quot;,&#10;  &quot;version&quot;: &quot;1.0.0&quot;,&#10;  &quot;config&quot;: {&#10;    &quot;enabled&quot;: true,&#10;    &quot;options&quot;: [&quot;option1&quot;, &quot;option2&quot;]&#10;  }&#10;}"
                               {% if field.required %}required{% endif %}>{{ record[field.name] | safe }}</textarea>
-                    <div id="{{ field.name }}_json_status" class="status-indicator absolute bottom-3 right-3 text-xs px-2 py-1 rounded hidden"></div>
+                    <div id="{{ field.name }}_json_status" class="absolute bottom-3 right-3 text-xs px-2 py-1 rounded hidden"></div>
                   </div>
                 </div>
               
               {% elif field.field_type == "editor" %}
-                <div class="editor-container border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm" data-editor="{{ field.name }}">
+                <div class="border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm" data-editor="{{ field.name }}">
                   <div class="flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-gray-700 border-b border-gray-300 dark:border-gray-600 rounded-t-lg">
                     <div class="flex items-center space-x-4">
                       <div class="flex items-center space-x-3">
@@ -335,7 +301,7 @@
                       <div class="flex bg-white dark:bg-gray-600 rounded-lg p-1 shadow-sm border border-gray-200 dark:border-gray-500">
                         <button type="button" onclick="switchEditorMode('{{ field.name }}', 'text')" 
                                 id="{{ field.name }}_mode_text"
-                                class="mode-button px-3 py-1 text-xs font-medium rounded-md transition-all duration-200 bg-blue-500 text-white shadow-sm">
+                                class="px-3 py-1 text-xs font-medium rounded-md transition-all duration-200 bg-blue-500 text-white shadow-sm">
                           <svg class="w-3 h-3 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"/>
                           </svg>
@@ -343,15 +309,15 @@
                         </button>
                         <button type="button" onclick="switchEditorMode('{{ field.name }}', 'html')" 
                                 id="{{ field.name }}_mode_html"
-                                class="mode-button px-3 py-1 text-xs font-medium rounded-md transition-all duration-200 text-gray-600 hover:text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-500">
+                                class="px-3 py-1 text-xs font-medium rounded-md transition-all duration-200 text-gray-600 hover:text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-500">
                           <svg class="w-3 h-3 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
                           </svg>
                           HTML
                         </button>
-                        <button type="button" onclick="switchEditorMode('{{ field.name }}', 'json')" 
+                        <button type="button" onclick="switchEditorMode('{{ field.name | safe }}', 'json')" 
                                 id="{{ field.name }}_mode_json"
-                                class="mode-button px-3 py-1 text-xs font-medium rounded-md transition-all duration-200 text-gray-600 hover:text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-500">
+                                class="px-3 py-1 text-xs font-medium rounded-md transition-all duration-200 text-gray-600 hover:text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-500">
                           <svg class="w-3 h-3 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                           </svg>
@@ -416,10 +382,6 @@
                                 class="px-2 py-1 text-xs bg-purple-100 text-purple-800 rounded hover:bg-purple-200 dark:bg-purple-900 dark:text-purple-300 transition-colors">
                           { }
                         </button>
-                        <button type="button" onclick="insertJson('{{ field.name }}', 'array')" 
-                                class="px-2 py-1 text-xs bg-purple-100 text-purple-800 rounded hover:bg-purple-200 dark:bg-purple-900 dark:text-purple-300 transition-colors">
-                          [ ]
-                        </button>
                       </div>
                     </div>
                   </div>
@@ -434,7 +396,7 @@
                               class="block w-full px-4 py-3 text-base border-0 focus:ring-0 resize-y dark:bg-gray-700 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
                               placeholder="Start typing your content here..."
                               {% if field.required %}required{% endif %}>{{ record[field.name] | default(value="") }}</textarea>
-                    <div id="{{ field.name }}_status" class="status-indicator absolute bottom-3 right-3 text-xs px-2 py-1 rounded hidden"></div>
+                    <div id="{{ field.name }}_status" class="absolute bottom-3 right-3 text-xs px-2 py-1 rounded hidden"></div>
                     <div class="absolute bottom-3 left-3 text-xs text-gray-400 bg-white dark:bg-gray-700 px-2 py-1 rounded">
                       <span id="{{ field.name }}_line_count">{{ record[field.name] | default(value="") | split(pat="\n") | length }}</span> lines • <span id="{{ field.name }}_char_count">{{ record[field.name] | default(value="") | length }}</span> chars
                     </div>
@@ -582,19 +544,17 @@
 </div>
 {% endif %}
 
-<!-- Complete JavaScript Functions -->
 <script>
-// Universal Editor Mode Switching - Fixed version
+// Enhanced Editor Functions with better UX
+
+// Universal Editor Mode Switching
 function switchEditorMode(fieldName, mode) {
   const textarea = document.getElementById(fieldName);
   const modeInput = document.getElementById(fieldName + '_mode');
   
-  if (!textarea) {
-    console.error('Textarea not found:', fieldName);
-    return;
-  }
+  if (!textarea || !modeInput) return;
   
-  // Update mode buttons
+  // Update mode buttons with smooth transitions
   const textBtn = document.getElementById(fieldName + '_mode_text');
   const htmlBtn = document.getElementById(fieldName + '_mode_html');
   const jsonBtn = document.getElementById(fieldName + '_mode_json');
@@ -602,56 +562,62 @@ function switchEditorMode(fieldName, mode) {
   // Reset all button styles
   [textBtn, htmlBtn, jsonBtn].forEach(btn => {
     if (btn) {
-      btn.className = 'mode-button px-3 py-1 text-xs font-medium rounded-md transition-all duration-200 text-gray-600 hover:text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-500';
+      btn.className = 'px-3 py-1 text-xs font-medium rounded-md transition-all duration-200 text-gray-600 hover:text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-500';
     }
   });
   
-  // Hide all tool panels
+  // Hide all tool panels with animation
   const textTools = document.getElementById(fieldName + '_tools_text');
   const htmlTools = document.getElementById(fieldName + '_tools_html');
   const jsonTools = document.getElementById(fieldName + '_tools_json');
   
   [textTools, htmlTools, jsonTools].forEach(tool => {
     if (tool) {
-      tool.classList.add('hidden');
+      tool.style.opacity = '0';
+      setTimeout(() => tool.classList.add('hidden'), 150);
     }
   });
   
-  // Update mode input if it exists
-  if (modeInput) {
-    modeInput.value = mode;
-  }
+  // Update active mode
+  modeInput.value = mode;
   
-  // Set active mode and show appropriate tools
-  if (mode === 'text') {
-    if (textBtn) textBtn.className = 'mode-button px-3 py-1 text-xs font-medium rounded-md transition-all duration-200 bg-blue-500 text-white shadow-sm';
-    if (textTools) textTools.classList.remove('hidden');
-    textarea.className = 'block w-full px-4 py-3 text-base border-0 focus:ring-0 resize-y dark:bg-gray-700 dark:text-white placeholder-gray-400 dark:placeholder-gray-500';
-    textarea.placeholder = 'Start typing your content here...';
-  } else if (mode === 'html') {
-    if (htmlBtn) htmlBtn.className = 'mode-button px-3 py-1 text-xs font-medium rounded-md transition-all duration-200 bg-blue-500 text-white shadow-sm';
-    if (htmlTools) htmlTools.classList.remove('hidden');
-    textarea.className = 'editor-textarea block w-full px-4 py-3 text-base border-0 focus:ring-0 resize-y font-mono dark:bg-gray-700 dark:text-white placeholder-gray-400 dark:placeholder-gray-500';
-    textarea.placeholder = '<html>\n  <head>\n    <title>Page Title</title>\n  </head>\n  <body>\n    <!-- Your content here -->\n  </body>\n</html>';
-  } else if (mode === 'json') {
-    if (jsonBtn) jsonBtn.className = 'mode-button px-3 py-1 text-xs font-medium rounded-md transition-all duration-200 bg-blue-500 text-white shadow-sm';
-    if (jsonTools) jsonTools.classList.remove('hidden');
-    textarea.className = 'editor-textarea block w-full px-4 py-3 text-base border-0 focus:ring-0 resize-y font-mono dark:bg-gray-700 dark:text-white placeholder-gray-400 dark:placeholder-gray-500';
-    textarea.placeholder = '{\n  "key": "value",\n  "array": [1, 2, 3],\n  "object": {\n    "nested": true\n  }\n}';
-  }
-  
-  // Update counts and focus
-  updateCounts(fieldName);
-  textarea.focus();
+  setTimeout(() => {
+    if (mode === 'text') {
+      if (textBtn) textBtn.className = 'px-3 py-1 text-xs font-medium rounded-md transition-all duration-200 bg-blue-500 text-white shadow-sm';
+      if (textTools) {
+        textTools.classList.remove('hidden');
+        textTools.style.opacity = '1';
+      }
+      textarea.className = 'block w-full px-4 py-3 text-base border-0 focus:ring-0 resize-y dark:bg-gray-700 dark:text-white placeholder-gray-400 dark:placeholder-gray-500';
+      textarea.placeholder = 'Start typing your content here...';
+    } else if (mode === 'html') {
+      if (htmlBtn) htmlBtn.className = 'px-3 py-1 text-xs font-medium rounded-md transition-all duration-200 bg-blue-500 text-white shadow-sm';
+      if (htmlTools) {
+        htmlTools.classList.remove('hidden');
+        htmlTools.style.opacity = '1';
+      }
+      textarea.className = 'block w-full px-4 py-3 text-base border-0 focus:ring-0 resize-y font-mono dark:bg-gray-700 dark:text-white placeholder-gray-400 dark:placeholder-gray-500';
+      textarea.placeholder = '<html>\n  <head>\n    <title>Page Title</title>\n  </head>\n  <body>\n    <!-- Your content here -->\n  </body>\n</html>';
+    } else if (mode === 'json') {
+      if (jsonBtn) jsonBtn.className = 'px-3 py-1 text-xs font-medium rounded-md transition-all duration-200 bg-blue-500 text-white shadow-sm';
+      if (jsonTools) {
+        jsonTools.classList.remove('hidden');
+        jsonTools.style.opacity = '1';
+      }
+      textarea.className = 'block w-full px-4 py-3 text-base border-0 focus:ring-0 resize-y font-mono dark:bg-gray-700 dark:text-white placeholder-gray-400 dark:placeholder-gray-500';
+      textarea.placeholder = '{\n  "key": "value",\n  "array": [1, 2, 3],\n  "object": {\n    "nested": true\n  }\n}';
+    }
+    
+    // Update character/line counts
+    updateCounts(fieldName);
+    textarea.focus();
+  }, 150);
 }
 
 // Enhanced Text Formatting
 function formatText(fieldName, format) {
   const textarea = document.getElementById(fieldName);
-  if (!textarea) {
-    console.error('Textarea not found:', fieldName);
-    return;
-  }
+  if (!textarea) return;
   
   const start = textarea.selectionStart;
   const end = textarea.selectionEnd;
@@ -664,18 +630,13 @@ function formatText(fieldName, format) {
     formattedText = selectedText ? `*${selectedText}*` : '*italic text*';
   }
   
-  if (formattedText) {
-    insertAtCursor(textarea, formattedText, start, end);
-    updateCounts(fieldName);
-  }
+  insertAtCursor(textarea, formattedText, start, end);
+  updateCounts(fieldName);
 }
 
 function insertText(fieldName, type) {
   const textarea = document.getElementById(fieldName);
-  if (!textarea) {
-    console.error('Textarea not found:', fieldName);
-    return;
-  }
+  if (!textarea) return;
   
   const start = textarea.selectionStart;
   const end = textarea.selectionEnd;
@@ -688,19 +649,14 @@ function insertText(fieldName, type) {
     insertText = selectedText ? `- ${selectedText}` : '- List item\n- Another item';
   }
   
-  if (insertText) {
-    insertAtCursor(textarea, insertText, start, end);
-    updateCounts(fieldName);
-  }
+  insertAtCursor(textarea, insertText, start, end);
+  updateCounts(fieldName);
 }
 
 // Enhanced HTML Functions
 function insertHtml(fieldName, type, tag = '') {
   const textarea = document.getElementById(fieldName);
-  if (!textarea) {
-    console.error('Textarea not found:', fieldName);
-    return;
-  }
+  if (!textarea) return;
   
   const start = textarea.selectionStart;
   const end = textarea.selectionEnd;
@@ -713,28 +669,19 @@ function insertHtml(fieldName, type, tag = '') {
     insertText = selectedText ? `<a href="">${selectedText}</a>` : '<a href="">Link Text</a>';
   }
   
-  if (insertText) {
-    insertAtCursor(textarea, insertText, start, end);
-    updateCounts(fieldName);
-  }
+  insertAtCursor(textarea, insertText, start, end);
+  updateCounts(fieldName);
 }
 
 function formatHtml(fieldName) {
   const textarea = document.getElementById(fieldName);
   const statusDiv = document.getElementById(fieldName + '_html_status');
   
-  if (!textarea) {
-    console.error('Textarea not found:', fieldName);
-    return;
-  }
+  if (!textarea) return;
   
   try {
-    let html = textarea.value.trim();
-    if (!html) {
-      showStatus(statusDiv, 'No HTML content to format', 'error');
-      return;
-    }
-    
+    // Simple HTML formatting (basic indentation)
+    let html = textarea.value;
     html = html.replace(/></g, '>\n<');
     const lines = html.split('\n');
     let indentLevel = 0;
@@ -748,7 +695,7 @@ function formatHtml(fieldName) {
       
       const indented = '  '.repeat(indentLevel) + trimmed;
       
-      if (trimmed.startsWith('<') && !trimmed.startsWith('</') && !trimmed.endsWith('/>') && !trimmed.includes('</')) {
+      if (trimmed.startsWith('<') && !trimmed.startsWith('</') && !trimmed.endsWith('/>')) {
         indentLevel++;
       }
       
@@ -758,32 +705,23 @@ function formatHtml(fieldName) {
     textarea.value = formatted;
     showStatus(statusDiv, 'HTML formatted successfully', 'success');
   } catch (error) {
-    showStatus(statusDiv, 'HTML formatting failed: ' + error.message, 'error');
+    showStatus(statusDiv, 'HTML formatting failed', 'error');
   }
   
   updateCounts(fieldName);
 }
 
-// Enhanced JSON Functions - Fixed
+// Enhanced JSON Functions
 function formatJson(fieldName) {
   const textarea = document.getElementById(fieldName);
   const statusDiv = document.getElementById(fieldName + '_json_status');
   
-  if (!textarea) {
-    console.error('Textarea not found:', fieldName);
-    return;
-  }
+  if (!textarea) return;
   
   try {
-    const textValue = textarea.value.trim();
-    if (!textValue) {
-      textarea.value = '{\n  "key": "value"\n}';
-      showStatus(statusDiv, 'Empty JSON initialized', 'success');
-    } else {
-      const parsed = JSON.parse(textValue);
-      textarea.value = JSON.stringify(parsed, null, 2);
-      showStatus(statusDiv, 'JSON formatted successfully', 'success');
-    }
+    const parsed = JSON.parse(textarea.value);
+    textarea.value = JSON.stringify(parsed, null, 2);
+    showStatus(statusDiv, 'JSON formatted successfully', 'success');
   } catch (error) {
     showStatus(statusDiv, 'Invalid JSON: ' + error.message, 'error');
   }
@@ -795,19 +733,10 @@ function validateJson(fieldName) {
   const textarea = document.getElementById(fieldName);
   const statusDiv = document.getElementById(fieldName + '_json_status');
   
-  if (!textarea) {
-    console.error('Textarea not found:', fieldName);
-    return;
-  }
+  if (!textarea) return;
   
   try {
-    const textValue = textarea.value.trim();
-    if (!textValue) {
-      showStatus(statusDiv, 'No JSON content to validate', 'error');
-      return;
-    }
-    
-    JSON.parse(textValue);
+    JSON.parse(textarea.value);
     showStatus(statusDiv, 'Valid JSON ✓', 'success');
   } catch (error) {
     showStatus(statusDiv, 'Invalid JSON: ' + error.message, 'error');
@@ -818,21 +747,12 @@ function minifyJson(fieldName) {
   const textarea = document.getElementById(fieldName);
   const statusDiv = document.getElementById(fieldName + '_json_status');
   
-  if (!textarea) {
-    console.error('Textarea not found:', fieldName);
-    return;
-  }
+  if (!textarea) return;
   
   try {
-    const textValue = textarea.value.trim();
-    if (!textValue) {
-      showStatus(statusDiv, 'No JSON content to minify', 'error');
-      return;
-    }
-    
-    const parsed = JSON.parse(textValue);
+    const parsed = JSON.parse(textarea.value);
     textarea.value = JSON.stringify(parsed);
-    showStatus(statusDiv, 'JSON minified successfully', 'success');
+    showStatus(statusDiv, 'JSON minified', 'success');
   } catch (error) {
     showStatus(statusDiv, 'Invalid JSON: ' + error.message, 'error');
   }
@@ -842,10 +762,7 @@ function minifyJson(fieldName) {
 
 function insertJson(fieldName, type) {
   const textarea = document.getElementById(fieldName);
-  if (!textarea) {
-    console.error('Textarea not found:', fieldName);
-    return;
-  }
+  if (!textarea) return;
   
   const start = textarea.selectionStart;
   const end = textarea.selectionEnd;
@@ -858,19 +775,12 @@ function insertJson(fieldName, type) {
     insertText = selectedText ? `[\n  "${selectedText}"\n]` : '[\n  "item1",\n  "item2"\n]';
   }
   
-  if (insertText) {
-    insertAtCursor(textarea, insertText, start, end);
-    updateCounts(fieldName);
-  }
+  insertAtCursor(textarea, insertText, start, end);
+  updateCounts(fieldName);
 }
 
-// Utility Functions - Fixed
+// Utility Functions
 function insertAtCursor(textarea, text, start, end) {
-  if (!textarea || typeof text !== 'string') {
-    console.error('Invalid textarea or text for insertAtCursor');
-    return;
-  }
-  
   textarea.value = textarea.value.substring(0, start) + text + textarea.value.substring(end);
   const newPosition = start + text.length;
   textarea.focus();
@@ -878,28 +788,19 @@ function insertAtCursor(textarea, text, start, end) {
 }
 
 function showStatus(statusDiv, message, type) {
-  if (!statusDiv || !message) return;
+  if (!statusDiv) return;
   
   statusDiv.textContent = message;
-  statusDiv.className = `status-indicator absolute bottom-3 right-3 text-xs px-2 py-1 rounded ${
+  statusDiv.className = `absolute bottom-3 right-3 text-xs px-2 py-1 rounded ${
     type === 'success' 
       ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' 
       : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
   }`;
   statusDiv.classList.remove('hidden');
-  statusDiv.classList.add('fade-in');
   
   setTimeout(() => {
-    if (statusDiv) {
-      statusDiv.style.opacity = '0';
-      setTimeout(() => {
-        if (statusDiv) {
-          statusDiv.classList.add('hidden');
-          statusDiv.style.opacity = '';
-          statusDiv.classList.remove('fade-in');
-        }
-      }, 300);
-    }
+    statusDiv.style.opacity = '0';
+    setTimeout(() => statusDiv.classList.add('hidden'), 300);
   }, 3000);
 }
 
@@ -909,38 +810,31 @@ function updateCounts(fieldName) {
   const lineCount = document.getElementById(fieldName + '_line_count');
   const textCount = document.getElementById(fieldName + '_count');
   
-  if (!textarea) return;
-  
-  const text = textarea.value || '';
-  const chars = text.length;
-  const lines = text.split('\n').length;
-  
-  if (charCount) charCount.textContent = chars;
-  if (lineCount) lineCount.textContent = lines;
-  if (textCount) textCount.textContent = chars;
+  if (textarea) {
+    const text = textarea.value;
+    const chars = text.length;
+    const lines = text.split('\n').length;
+    
+    if (charCount) charCount.textContent = chars;
+    if (lineCount) lineCount.textContent = lines;
+    if (textCount) textCount.textContent = chars;
+  }
 }
 
-// Initialize event listeners - Enhanced
+// Initialize event listeners
 document.addEventListener('DOMContentLoaded', function() {
   // Add event listeners for character counting
   document.querySelectorAll('textarea').forEach(textarea => {
     const fieldName = textarea.id;
     
-    if (!fieldName) return;
-    
-    // Bind input events for real-time counting
     textarea.addEventListener('input', () => updateCounts(fieldName));
     textarea.addEventListener('keyup', () => updateCounts(fieldName));
-    textarea.addEventListener('paste', () => {
-      // Small delay to allow paste content to be processed
-      setTimeout(() => updateCounts(fieldName), 10);
-    });
     
-    // Initial count on page load
+    // Initial count
     updateCounts(fieldName);
   });
   
-  // Add keyboard shortcuts for editor functions
+  // Add keyboard shortcuts
   document.querySelectorAll('textarea').forEach(textarea => {
     textarea.addEventListener('keydown', function(e) {
       if (e.ctrlKey || e.metaKey) {
@@ -954,92 +848,10 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
             formatText(fieldName, 'italic');
             break;
-          case 'l':
-            if (e.shiftKey) {
-              e.preventDefault();
-              formatJson(fieldName);
-            }
-            break;
-          case 'Enter':
-            if (e.shiftKey) {
-              e.preventDefault();
-              validateJson(fieldName);
-            }
-            break;
-        }
-      }
-      
-      // Tab key handling for better indentation in code editors
-      if (e.key === 'Tab' && !e.shiftKey) {
-        const textarea = this;
-        const currentMode = document.getElementById(fieldName + '_mode');
-        
-        // Only handle tab in HTML/JSON modes
-        if (currentMode && (currentMode.value === 'html' || currentMode.value === 'json')) {
-          e.preventDefault();
-          const start = textarea.selectionStart;
-          const end = textarea.selectionEnd;
-          
-          // Insert 2 spaces instead of tab character
-          textarea.value = textarea.value.substring(0, start) + '  ' + textarea.value.substring(end);
-          textarea.selectionStart = textarea.selectionEnd = start + 2;
-          
-          updateCounts(fieldName);
         }
       }
     });
   });
-  
-  // Auto-resize textareas based on content
-  document.querySelectorAll('textarea').forEach(textarea => {
-    const autoResize = () => {
-      textarea.style.height = 'auto';
-      textarea.style.height = Math.max(textarea.scrollHeight, 100) + 'px';
-    };
-    
-    textarea.addEventListener('input', autoResize);
-    textarea.addEventListener('paste', () => setTimeout(autoResize, 10));
-    
-    // Initial resize
-    autoResize();
-  });
-  
-  // Initialize all editor counts on page load
-  setTimeout(() => {
-    document.querySelectorAll('textarea').forEach(textarea => {
-      if (textarea.id) {
-        updateCounts(textarea.id);
-      }
-    });
-  }, 100);
 });
-
-// Global error handler for editor functions
-window.addEventListener('error', function(e) {
-  if (e.message.includes('editor') || e.message.includes('JSON') || e.message.includes('HTML')) {
-    console.error('Editor Error:', e.message, e.filename, e.lineno);
-  }
-});
-
-// Utility function to check if an element exists
-function elementExists(id) {
-  return document.getElementById(id) !== null;
-}
-
-// Debug function to log editor state
-function debugEditor(fieldName) {
-  const textarea = document.getElementById(fieldName);
-  const mode = document.getElementById(fieldName + '_mode');
-  
-  console.log('Editor Debug:', {
-    fieldName: fieldName,
-    textareaExists: !!textarea,
-    modeExists: !!mode,
-    currentMode: mode ? mode.value : 'none',
-    textLength: textarea ? textarea.value.length : 0
-  });
-}
-
-console.log('Complete editor functions loaded successfully');
 </script>
 {% endblock content %}
